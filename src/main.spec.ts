@@ -19,55 +19,172 @@ test('Single simple reducer should work', () => {
 });
 
 test('Mapped single level reducer should work', () => {
-    type StateA = {abc: number};
-    type StateB = {def: string};
+    type StateA = {age: number};
+    type StateB = {name: string};
     type MyState = {
-        aaa: StateA,
-        bbb: StateB,
+        a: StateA,
+        b: StateB,
+        c: {
+            d: {
+                info: string
+            }
+        },
+        e: {f: string},
     };
     type ActionA = {type: 'doA'};
     type ActionB = {type: 'doB'};
-    type MyAction = ActionA | ActionB;
+    type MyAction = ActionA | ActionB | {type: 'update_info'};
+
+
+    // TODO get the action type working inside reducers
+
     const store = configure<MyState, MyAction>({
         reducer: {
-            aaa: (state: StateA, action: ActionA): StateA => {
+            a: (state, action) => {
                 switch (action.type) {
                     case 'doA':
-                        return {...state, abc: 456}
+                        return {...state, age: 456}
                 }
                 return state;
             },
-            bbb: (state: StateB, action: ActionB): StateB => {
+            b: (state, action) => {
                 switch (action.type) {
                     case 'doB':
-                        return {...state, def: 'BBB'}
+                        return {...state, name: 'BBB'}
                 }
                 return state;
             },
+            c: {
+                d: (state, action) => {
+                    switch (action.type) {
+                        case 'update_info':
+                            return {...state, info: action.value};
+                    }
+                    return state;
+                }
+            },
+            e: {f: (s, a) => s}
         },
         initialState: {
-            aaa: {abc: 123},
-            bbb: {def: 'AAA'}
+            a: {age: 123},
+            b: {name: 'AAA'},
+            c: {d: {info: 'no info'}},
+            e: {f: 'hui'}
         }
     });
 
-    expect(store.getState().aaa.abc).toBe(123);
-    expect(store.getState().bbb.def).toBe('AAA');
+    expect(store.getState()).toStrictEqual({
+        a: {age: 123},
+        b: {name: 'AAA'},
+        c: {d: {info: 'no info'}},
+        e: {f: 'hui'}
+    })
+
+    expect(store.getState().a.age).toBe(123);
+    expect(store.getState().b.name).toBe('AAA');
 
     store.dispatch({type: 'doA'});
 
-    expect(store.getState().aaa.abc).toBe(456);
-    expect(store.getState().bbb.def).toBe('AAA');
+    expect(store.getState()).toStrictEqual({
+        a: {age: 456},
+        b: {name: 'AAA'},
+        c: {d: {info: 'no info'}},
+        e: {f: 'hui'}
+    });
+
 });
 
-// test('Dono', () => {
-//     const store = configure({
-//         reducer: {
-//             part1: {
-//                 sub1: (state, action) => state
-//             }
-//         }
-//     });
+// test('Should allow multi level reducers', () => {
+
+//     // type Func<S = any, A = any> = (state: S, action: A) => S
+
+//     // type Node<S = any, A = any, AA extends A = any> = keyof S extends any
+//     //     ? {
+//     //         // [K in keyof S]: S[K] extends Function ? Func<S[K], AA> : Node<S[K], AA>
+
+//     //         [K in keyof S]: S[K]
+
+
+
+//     //         // [K in keyof S]: S[K] extends Function ? Func<S[K]> : Node<S[K], A>
+//     //         // [K in keyof S]: Func<S[K]> | Node<S[K], A>
+//     //     }
+//     //     : never
+
+//     // type ConfOpts<S = any, A = any> = {
+//     //     initialState?: S,
+//     //     reducer: Func<S, A> | Node<S, A>
+//     // };
+
+//     // const conf = <S = any, A = any>(opts: ConfOpts<S, A>): S => {
+//     //     return {} as any
+//     // }
+
+//     // const r1 = conf({
+//     //     initialState: {
+//     //         a: {
+//     //             name: 'aaa'
+//     //         }
+//     //     },
+//     //     reducer: (s, a) => s
+//     // });
+//     // const r2 = conf({
+//     //     // initialState: {
+//     //     //     a: {
+//     //     //         name: 'aaa'
+//     //     //     }
+//     //     // },
+//     //     reducer: {
+//     //         a: (s: {name: string}, a) => s,
+//     //         b: {
+//     //             c: (s: {age: number}) => s
+//     //         }
+//     //     }
+//     // });
+
+//     // r2.b.c()
+
+
+
+//     // type Root<S = any, A = any> = Node<S, A>;
+
+//     // // const r1: Root = (s, a) => s;
+//     // const r2: Root = {
+//     //     sub1: (s, a) => s,
+//     // }
+
+//     // type MS = {name: string};
+
+//     // const r3: Root = {
+//     //     sub1: {
+//     //         sub2: (s: MS, a) => s,
+//     //     }
+//     // }
+
+//     // const r4: Root<{a: {b: {c: {d: number}}}}> = {
+//     //     a: {
+//     //         b: {
+//     //             c: {
+//     //                 d: 123
+//     //             }
+//     //         }
+//     //     }
+//     // };
+
+//     // const r5: Root<{a: {b: {c: {d: number}}}}, {type: 'dodo'}> = {
+//     //     a: {
+//     //         b: {
+//     //             c: (s, a) => s
+//     //         }
+//     //     }
+//     // };
+
+//     // const r6: Root = {
+//     //     a: {
+//     //         b: (s, a) => s
+//     //     }
+//     // };
+
 // });
 
 // // TODO add property with action creators that have unique names and mapped properties
