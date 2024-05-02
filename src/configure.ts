@@ -30,10 +30,10 @@ const reduce = <S = any, A = any>(state: S, action: A, reducer: ReducerNode<S, A
                 rootReducer = reducer;
                 return;
             }
-            const next = reduce(state[prop], action, reducer);
-            if (state[prop] !== next) {
+            const next = reduce((state as any)[prop], action, reducer);
+            if ((state as any)[prop] !== next) {
                 hasChanges = true;
-                changes[prop] = next;
+                (changes as any)[prop] = next;
             }
         });
         state = hasChanges ? {...state, ...changes} : state;
