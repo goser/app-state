@@ -1,269 +1,239 @@
-import {expect, test} from 'vitest';
+import {describe, expect, it, test} from 'vitest';
 import {configure} from './configure';
 
-test('Single simple reducer should work', () => {
-    type MyState = {mode: 'A' | 'B'};
-    type MyAction = {type: 'init'};
-    const store = configure({
-        reducer: (state: MyState, action: MyAction): MyState => {
-            switch (action.type) {
-                case 'init':
-                    return {...state, mode: 'B'}
-            }
-        },
-        initialState: {mode: 'A'}
+describe('configure', () => {
+
+    it('should allow single reducer function', () => {
+        type S = {mode: 'A' | 'B'};
+        type A = {type: 'init'};
+        const store = configure<S, A>({
+            reducer: (state, action) => {
+                switch (action.type) {
+                    case 'init':
+                        return {...state, mode: 'B'}
+                }
+            },
+            initialState: {mode: 'A'}
+        });
+        expect(store.getState()).toStrictEqual({mode: 'A'});
+        store.dispatch({type: 'init'});
+        expect(store.getState()).toStrictEqual({mode: 'B'});
     });
-    expect(store.getState().mode).toBe('A');
-    store.dispatch({type: 'init'});
-    expect(store.getState().mode).toBe('B');
-});
 
-test('Mapped single level reducer should work', () => {
-    type StateA = {age: number};
-    type StateB = {name: string};
-    type MyState = {
-        a: StateA,
-        b: StateB,
-        c: {
-            d: {
-                info: string
+    it('should allow sub reducers for single properties', () => {
+        type S = {age: number};
+        type A = {type: 'birthday'};
+        const store = configure<S, A>({
+            reducer: {
+                age: (s, a) => {
+                    switch (a.type) {
+                        case 'birthday':
+                            return s + 1;
+                    }
+                    return s;
+                }
+            },
+            initialState: {
+                age: 15
             }
-        },
-        e: {f: string},
-    };
-    type ActionA = {type: 'doA'};
-    type ActionB = {type: 'doB'};
-    type MyAction = ActionA | ActionB | {type: 'update_info'};
+        });
+        expect(store.getState()).toStrictEqual({age: 15});
+        store.dispatch({type: 'birthday'});
+        expect(store.getState()).toStrictEqual({age: 16});
+    });
 
-
-    // TODO get the action type working inside reducers
-
-    const store = configure<MyState, MyAction>({
-        reducer: {
-            a: (state, action) => {
-                switch (action.type) {
-                    case 'doA':
-                        return {...state, age: 456}
+    it('should allow sub reducers for object properties', () => {
+        type S = {user: {name: string, age: number}};
+        type A = {type: 'birthday'};
+        const store = configure<S, A>({
+            reducer: {
+                user: (s, a) => {
+                    switch (a.type) {
+                        case 'birthday':
+                            return {...s, age: s.age + 1};
+                    }
+                    return s;
                 }
-                return state;
             },
-            b: (state, action) => {
-                switch (action.type) {
-                    case 'doB':
-                        return {...state, name: 'BBB'}
+            initialState: {
+                user: {
+                    name: 'Heinz',
+                    age: 66
                 }
-                return state;
+            }
+        });
+        expect(store.getState()).toStrictEqual({user: {name: 'Heinz', age: 66}});
+        store.dispatch({type: 'birthday'});
+        expect(store.getState()).toStrictEqual({user: {name: 'Heinz', age: 67}});
+    });
+
+    it('should support root reducers on different levels', () => {
+        type S = {
+            mode: string,
+            user: {name: string, age: number}
+        };
+        type A = {type: 'birthday'} | {type: 'set_mode', value: string};
+        const store = configure<S, A>({
+            reducer: {
+                reducer: (s, a) => {
+                    switch (a.type) {
+                        case 'set_mode':
+                            return {...s, mode: a.value};
+                    }
+                    return s;
+                },
+                user: (s, a) => {
+                    switch (a.type) {
+                        case 'birthday':
+                            return {...s, age: s.age + 1};
+                    }
+                    return s;
+                }
             },
+            initialState: {
+                mode: 'initial',
+                user: {name: 'Acorn', age: 3}
+            }
+        });
+
+        expect(store.getState()).toStrictEqual({
+            mode: 'initial',
+            user: {name: 'Acorn', age: 3}
+        });
+
+        store.dispatch({type: 'set_mode', value: 'done'});
+        expect(store.getState()).toStrictEqual({
+            mode: 'done',
+            user: {name: 'Acorn', age: 3}
+        });
+    });
+
+    it('should allow fixed properties', () => {
+        class Mode {
+            constructor(public a: string, public b: string) {
+            }
+        }
+        type S = {
+            mode: {a: string, b: string},
+            special: Mode,
+            user: {name: string, age: number}
+        }
+        type A = {type: 'birthday'}
+        const initialSpecial = new Mode('init', 'init');
+        const fixedSpecial = new Mode("fix", "fix");
+        const store = configure<S, A>({
+            reducer: {
+                mode: {a: "fixed", b: "fixed"},
+                special: fixedSpecial,
+                user: (s, a) => {
+                    switch (a.type) {
+                        case 'birthday':
+                            return {...s, age: s.age + 1};
+                    }
+                    return s;
+                }
+            },
+            initialState: {
+                mode: {a: 'initial', b: 'initial'},
+                special: initialSpecial,
+                user: {name: 'Anne', age: 20}
+            }
+        });
+
+        expect(store.getState()).toStrictEqual({
+            mode: {a: 'initial', b: 'initial'},
+            special: new Mode('init', 'init'),
+            user: {name: 'Anne', age: 20}
+        });
+        expect(store.getState().special).toBe(initialSpecial);
+
+        store.dispatch({type: 'birthday'});
+
+        expect(store.getState()).toStrictEqual({
+            mode: {a: 'fixed', b: 'fixed'},
+            special: new Mode('fix', 'fix'),
+            user: {name: 'Anne', age: 21}
+        });
+        expect(store.getState().special).toBe(fixedSpecial);
+    });
+
+    it('should support deep reducer nesting', () => {
+        type S1 = {age: number};
+        type S2 = {name: string};
+        type S = {
+            a: S1,
+            b: S2,
             c: {
-                d: (state, action) => {
+                d: {
+                    info: string
+                }
+            },
+            e: {f: string},
+        };
+        type A1 = {type: 'doA'};
+        type A2 = {type: 'doB'};
+        type A = A1 | A2 | {type: 'update_info', value: string};
+
+        const store = configure<S, A>({
+            reducer: {
+                a: (state, action) => {
                     switch (action.type) {
-                        case 'update_info':
-                            return {...state, info: action.value};
+                        case 'doA':
+                            return {...state, age: 456}
                     }
                     return state;
-                }
+                },
+                b: (state, action) => {
+                    switch (action.type) {
+                        case 'doB':
+                            return {...state, name: 'BBB'}
+                    }
+                    return state;
+                },
+                c: {
+                    d: (state, action) => {
+                        switch (action.type) {
+                            case 'update_info':
+                                return {...state, info: action.value};
+                        }
+                        return state;
+                    }
+                },
+                e: {f: (s, a) => s}
             },
-            e: {f: (s, a) => s}
-        },
-        initialState: {
+            initialState: {
+                a: {age: 123},
+                b: {name: 'AAA'},
+                c: {d: {info: 'no info'}},
+                e: {f: 'hui'}
+            }
+        });
+
+        expect(store.getState()).toStrictEqual({
             a: {age: 123},
             b: {name: 'AAA'},
             c: {d: {info: 'no info'}},
             e: {f: 'hui'}
-        }
-    });
+        })
 
-    expect(store.getState()).toStrictEqual({
-        a: {age: 123},
-        b: {name: 'AAA'},
-        c: {d: {info: 'no info'}},
-        e: {f: 'hui'}
-    })
+        store.dispatch({type: 'doA'});
 
-    expect(store.getState().a.age).toBe(123);
-    expect(store.getState().b.name).toBe('AAA');
+        expect(store.getState()).toStrictEqual({
+            a: {age: 456},
+            b: {name: 'AAA'},
+            c: {d: {info: 'no info'}},
+            e: {f: 'hui'}
+        });
 
-    store.dispatch({type: 'doA'});
+        store.dispatch({type: 'update_info', value: 'Holla die Waldfee'});
 
-    expect(store.getState()).toStrictEqual({
-        a: {age: 456},
-        b: {name: 'AAA'},
-        c: {d: {info: 'no info'}},
-        e: {f: 'hui'}
+        expect(store.getState()).toStrictEqual({
+            a: {age: 456},
+            b: {name: 'AAA'},
+            c: {d: {info: 'Holla die Waldfee'}},
+            e: {f: 'hui'}
+        });
+
     });
 
 });
-
-// test('Should allow multi level reducers', () => {
-
-//     // type Func<S = any, A = any> = (state: S, action: A) => S
-
-//     // type Node<S = any, A = any, AA extends A = any> = keyof S extends any
-//     //     ? {
-//     //         // [K in keyof S]: S[K] extends Function ? Func<S[K], AA> : Node<S[K], AA>
-
-//     //         [K in keyof S]: S[K]
-
-
-
-//     //         // [K in keyof S]: S[K] extends Function ? Func<S[K]> : Node<S[K], A>
-//     //         // [K in keyof S]: Func<S[K]> | Node<S[K], A>
-//     //     }
-//     //     : never
-
-//     // type ConfOpts<S = any, A = any> = {
-//     //     initialState?: S,
-//     //     reducer: Func<S, A> | Node<S, A>
-//     // };
-
-//     // const conf = <S = any, A = any>(opts: ConfOpts<S, A>): S => {
-//     //     return {} as any
-//     // }
-
-//     // const r1 = conf({
-//     //     initialState: {
-//     //         a: {
-//     //             name: 'aaa'
-//     //         }
-//     //     },
-//     //     reducer: (s, a) => s
-//     // });
-//     // const r2 = conf({
-//     //     // initialState: {
-//     //     //     a: {
-//     //     //         name: 'aaa'
-//     //     //     }
-//     //     // },
-//     //     reducer: {
-//     //         a: (s: {name: string}, a) => s,
-//     //         b: {
-//     //             c: (s: {age: number}) => s
-//     //         }
-//     //     }
-//     // });
-
-//     // r2.b.c()
-
-
-
-//     // type Root<S = any, A = any> = Node<S, A>;
-
-//     // // const r1: Root = (s, a) => s;
-//     // const r2: Root = {
-//     //     sub1: (s, a) => s,
-//     // }
-
-//     // type MS = {name: string};
-
-//     // const r3: Root = {
-//     //     sub1: {
-//     //         sub2: (s: MS, a) => s,
-//     //     }
-//     // }
-
-//     // const r4: Root<{a: {b: {c: {d: number}}}}> = {
-//     //     a: {
-//     //         b: {
-//     //             c: {
-//     //                 d: 123
-//     //             }
-//     //         }
-//     //     }
-//     // };
-
-//     // const r5: Root<{a: {b: {c: {d: number}}}}, {type: 'dodo'}> = {
-//     //     a: {
-//     //         b: {
-//     //             c: (s, a) => s
-//     //         }
-//     //     }
-//     // };
-
-//     // const r6: Root = {
-//     //     a: {
-//     //         b: (s, a) => s
-//     //     }
-//     // };
-
-// });
-
-// // TODO add property with action creators that have unique names and mapped properties
-
-// // export type ReducerNode<S = any, A = any> = keyof S extends any
-// //     ? {
-// //         [K in keyof S]: Reducer<S[K]>
-// //     }
-// //     : never
-// export type ReducerNode<S = any, A = any> = keyof S extends any
-//     ? {
-//         [K in keyof S]: Reducer<S[K]>
-//     }
-//     : never
-
-// type ReducersDefinition = Record<string, unknown>;
-
-// type ReducersProp = Reducer | ReducersDefinition
-
-// type CreateReducerOptions<Reducers extends ReducersProp = any> = {
-//     reducers: Reducers
-// };
-
-// type CreateReducerResult<Reducers extends ReducersProp = any> = {
-//     reducer: (state: any, action: any) => any
-//     actions: {
-//         [Key in ObjectKeys2MethodName<Reducers>]
-//     }
-// }
-
-
-// const createReducer = <Reducers extends ReducersProp = any>(options: CreateReducerOptions<Reducers>): CreateReducerResult<Reducers> => {
-//     const flat: any = {};
-//     const internal = (node) => {
-//     }
-//     const flatten = (node, prefix: string) => {
-//         if (typeof node === 'function') {
-//             flat[prefix] = node;
-//         } else {
-//             Object.keys(node).forEach(key => flatten(node[key], prefix + ":" + key))
-//         }
-//     };
-//     flatten(options.reducers, '');
-//     console.log('flat', flat);
-
-//     return {
-//         reducer: (state, action) => state,
-//         actions: {} as any
-//     }
-// }
-
-// test('Create reducer', () => {
-
-//     const reducers = {
-//         section1: {
-//             partA: (state, action) => state,
-//             partB: (state, action) => state
-//         },
-//         section2: {
-//             partC: (state, action) => state,
-//             partD: {
-//                 subPartA: (state, action) => state,
-//                 subPartB: (state, action) => state,
-//             }
-//         },
-//     };
-
-//     const result = createReducer({reducers});
-//     // expect(result.actions.section1PartA).toBeTypeOf('function');
-
-//     // expect(result.reducer).toBeTypeOf('function')
-// });
-
-// test('Create reducer 2', () => {
-//     type MyState = {name: 'none'};
-//     type MyAction = {type: 'rename'};
-//     const func = (state: MyState, action: MyAction) => state;
-//     const result = createReducer({reducers: func});
-// });
-
-
-
