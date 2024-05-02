@@ -158,21 +158,22 @@ describe('configure', () => {
     });
 
     it('should support deep reducer nesting', () => {
-        type S1 = {age: number};
-        type S2 = {name: string};
         type S = {
-            a: S1,
-            b: S2,
+            a: {age: number},
+            b: {name: string},
             c: {
                 d: {
                     info: string
-                }
+                },
+                additionalData?: any
             },
             e: {f: string},
         };
-        type A1 = {type: 'doA'};
-        type A2 = {type: 'doB'};
-        type A = A1 | A2 | {type: 'update_info', value: string};
+        type A =
+            {type: 'doA'} |
+            {type: 'doB'} |
+            {type: 'update_info', value: string} |
+            {type: 'add_info', value: any};
 
         const store = configure<S, A>({
             reducer: {
@@ -191,6 +192,13 @@ describe('configure', () => {
                     return state;
                 },
                 c: {
+                    reducer: (s, a) => {
+                        switch (a.type) {
+                            case 'add_info':
+                                return {...s, additionalData: a.value}
+                        }
+                        return s;
+                    },
                     d: (state, action) => {
                         switch (action.type) {
                             case 'update_info':
@@ -231,6 +239,15 @@ describe('configure', () => {
             a: {age: 456},
             b: {name: 'AAA'},
             c: {d: {info: 'Holla die Waldfee'}},
+            e: {f: 'hui'}
+        });
+
+        store.dispatch({type: 'add_info', value: {what: 'why?'}})
+
+        expect(store.getState()).toStrictEqual({
+            a: {age: 456},
+            b: {name: 'AAA'},
+            c: {d: {info: 'Holla die Waldfee'}, additionalData: {what: 'why?'}},
             e: {f: 'hui'}
         });
 
