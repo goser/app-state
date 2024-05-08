@@ -5,7 +5,7 @@ type DodoAction = {type: 'init'};
 
 const initialState: DodoState = {mode: 'A'};
 
-const res = configure({
+const store = configure({
     reducer: (state: DodoState, action: DodoAction): DodoState => {
         switch (action.type) {
             case 'init':
@@ -16,11 +16,11 @@ const res = configure({
     initialState
 });
 
-console.log('res.getState()', res.getState());
+console.log('res.getState()', store.getState());
 
-res.dispatch({type: 'init'});
+store.dispatch({type: 'init'});
 
-console.log('res.getState()', res.getState());
+console.log('res.getState()', store.getState());
 
 
 

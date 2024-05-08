@@ -1,3 +1,5 @@
+import {Store} from './Store';
+
 export type Reducer<S = any, A = any> = (state: S, action: A) => S;
 
 export type ReducerNode<S = any, A = any> = Reducer<S, A> | ReducerMap<S, A>
@@ -12,11 +14,6 @@ export type ConfigurationOptions<S = any, A = any> = {
     reducer: ReducerNode<S, A>
     initialState: S
 };
-
-export type Store<S = any, A = any> = {
-    getState: () => S
-    dispatch: (action: A) => void
-}
 
 const reduce = <S = any, A = any>(state: S, action: A, reducer: ReducerNode<S, A>): S => {
     if (typeof reducer === 'function') {
