@@ -1,4 +1,4 @@
-import {PropsWithChildren, ReactNode, createContext, useContext, useMemo} from 'react';
+import {PropsWithChildren, ReactNode, createContext, useContext, useMemo, useState} from 'react';
 import {Store} from '../Store';
 
 type ContextType<T, A> = {
@@ -6,7 +6,7 @@ type ContextType<T, A> = {
 }
 
 const DEFAULT: ContextType<any, any> = {
-    store: {dispatch: () => { }, getState: () => ({})}
+    store: {dispatch: () => { }, getState: () => ({}), subscribe: () => { }, unsubscribe: () => { }}
 }
 
 const Context = createContext(DEFAULT);
@@ -23,7 +23,16 @@ type StoreProviderProps<S, A> = PropsWithChildren<{
 }>
 
 export const StoreProvider = <S, A>({children, store}: StoreProviderProps<S, A>): ReactNode => {
+    console.log('render StoreProvider()');
+    const [, forceUpdate] = useState<{}>(Object.create(null));
     const value = useMemo(() => {
+        console.log('StoreProvider() useMemo');
+        const onDispatch = () => {
+            console.log("onDispatch()");
+
+            forceUpdate(Object.create(null));
+        }
+        store.subscribe(onDispatch);
         return {
             store,
         }

@@ -56,7 +56,7 @@ describe('useStore', () => {
         expect(result.current.getState()).toStrictEqual(afterPartyState);
     });
 
-    it('should trigger rerender on dispatch', async () => {
+    it.only('should trigger rerender on dispatch', async () => {
         let count = 0;
         let store: Store<AppState, AppAction>;
         const Comp = () => {

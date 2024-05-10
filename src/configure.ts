@@ -1,4 +1,4 @@
-import {Store} from './Store';
+import {Store, StoreSubscriber} from './Store';
 
 export type Reducer<S = any, A = any> = (state: S, action: A) => S;
 
@@ -44,10 +44,31 @@ const reduce = <S = any, A = any>(state: S, action: A, reducer: ReducerNode<S, A
 
 export const configure = <S = any, A = any>(options: ConfigurationOptions<S, A>): Store<S, A> => {
     let state = options.initialState || {} as S;
+    let isDispatching = false;
+    let subscribers: StoreSubscriber[] = [];
+
+    const unsubscribe = (subscriber: StoreSubscriber) => {
+        subscribers = subscribers.filter(sub => sub !== subscriber);
+    };
+
     return {
         getState: () => state,
         dispatch: (action) => {
-            state = reduce(state, action, options.reducer);
+            if (isDispatching) {
+                throw Error('Dispatch inside reducer is not allowed!');
+            }
+            try {
+                isDispatching = true;
+                state = reduce(state, action, options.reducer);
+            } finally {
+                isDispatching = false;
+            }
+            subscribers.forEach(subscriber => subscriber());
         },
+        subscribe: (subscriber) => {
+            unsubscribe(subscriber);
+            subscribers.push(subscriber);
+        },
+        unsubscribe,
     }
 }
