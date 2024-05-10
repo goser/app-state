@@ -11,7 +11,6 @@ const DEFAULT: ContextType<any, any> = {
 
 const Context = createContext(DEFAULT);
 
-
 export const useStoreContext = <S, A>() => useContext<ContextType<S, A>>(Context);
 
 // TODO how to update the store inside the Context from outside configured store
@@ -24,15 +23,15 @@ type StoreProviderProps<S, A> = PropsWithChildren<{
 
 export const StoreProvider = <S, A>({children, store}: StoreProviderProps<S, A>): ReactNode => {
     console.log('render StoreProvider()');
-    const [, forceUpdate] = useState<{}>(Object.create(null));
+    // const [, forceUpdate] = useState<{}>(Object.create(null));
     const value = useMemo(() => {
         console.log('StoreProvider() useMemo');
-        const onDispatch = () => {
-            console.log("onDispatch()");
+        // const onDispatch = () => {
+        //     console.log("onDispatch()");
 
-            forceUpdate(Object.create(null));
-        }
-        store.subscribe(onDispatch);
+        //     forceUpdate(Object.create(null));
+        // }
+        // store.subscribe(onDispatch);
         return {
             store,
         }
