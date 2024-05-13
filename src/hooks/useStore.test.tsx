@@ -1,10 +1,9 @@
-import {act, render, renderHook, screen, waitFor} from '@testing-library/react';
-import {Dispatch, FC, PropsWithChildren, ReactNode, useState} from 'react';
+import {act, render, renderHook, waitFor} from '@testing-library/react';
+import {FC, PropsWithChildren, useState} from 'react';
 import {describe, expect, expectTypeOf, it} from 'vitest';
 import {Store} from '../Store';
 import {ReducerNode, configure} from '../configure';
 import {StoreProvider} from './StoreContext';
-import {useStore} from './useStore';
 import {useStoreDispatch} from './useStoreDispatch';
 import {useStoreState} from './useStoreState';
 
@@ -61,32 +60,28 @@ describe('useStoreState', () => {
 
     it('should return updated state after dispatch', () => {
         let state: AppState;
-        let dispatch: Dispatch<AppAction>;
         const Comp = () => {
             state = useStoreState<AppState>();
-            dispatch = useStoreDispatch<AppAction>();
             return null;
         }
         render(<Comp />, {wrapper: wrapper});
-        act(() => dispatch!({type: 'party'}));
+        act(() => currentStore.dispatch({type: 'party'}));
         expect(state!).toStrictEqual(afterPartyState);
     });
 
     it('should trigger rerender on dispatch', () => {
         let count = 0;
         let state: AppState;
-        let dispatch: Dispatch<AppAction>;
         const Comp = () => {
             state = useStoreState<AppState>();
-            dispatch = useStoreDispatch<AppAction>();
             count++;
             return null;
         }
         render(<Comp />, {wrapper: wrapper});
-        act(() => dispatch!({type: 'party'}));
+        act(() => currentStore.dispatch({type: 'party'}));
         expect(state!.user.age).toBe(36);
         expect(count).toBe(2);
-        act(() => dispatch!({type: 'party'}));
+        act(() => currentStore.dispatch({type: 'party'}));
         expect(state!.user.age).toBe(37);
         expect(count).toBe(3);
     });
@@ -97,8 +92,7 @@ describe('useStoreState', () => {
 
     });
 
-    // TODO do we really need this feature?
-    it.skip('should not trigger rerender when another substate was changed by dispatch', () => {
+    it('should not trigger rerender when another substate was changed by dispatch', () => {
         const selectUser = (state: AppState) => state.user;
         let userRenderCount = 0;
         const UserComp = () => {

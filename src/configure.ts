@@ -45,9 +45,9 @@ const reduce = <S = any, A = any>(state: S, action: A, reducer: ReducerNode<S, A
 export const configure = <S = any, A = any>(options: ConfigurationOptions<S, A>): Store<S, A> => {
     let state = options.initialState || {} as S;
     let isDispatching = false;
-    let subscribers: StoreSubscriber[] = [];
+    let subscribers: StoreSubscriber<S>[] = [];
 
-    const unsubscribe = (subscriber: StoreSubscriber) => {
+    const unsubscribe = (subscriber: StoreSubscriber<S>) => {
         subscribers = subscribers.filter(sub => sub !== subscriber);
     };
 
@@ -57,13 +57,14 @@ export const configure = <S = any, A = any>(options: ConfigurationOptions<S, A>)
             if (isDispatching) {
                 throw Error('Dispatch inside reducer is not allowed!');
             }
+            const previousState = state;
             try {
                 isDispatching = true;
                 state = reduce(state, action, options.reducer);
             } finally {
                 isDispatching = false;
             }
-            subscribers.forEach(subscriber => subscriber());
+            subscribers.forEach(subscriber => subscriber(previousState, state));
         },
         subscribe: (subscriber) => {
             unsubscribe(subscriber);

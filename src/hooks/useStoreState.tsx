@@ -1,18 +1,28 @@
-import {useMemo, useState} from 'react';
+import {useEffect, useState} from 'react';
 import {useStoreContext} from './StoreContext';
+import {StoreSubscriber} from '../Store';
 
-export function useStoreState<State>(): State;
-export function useStoreState<State, R>(selector?: (state: State) => R): R;
-export function useStoreState<State, R>(selector?: any): any {
-    const {store} = useStoreContext<State, any>();
+export function useStoreState<S>(): S;
+export function useStoreState<S, R>(selector?: (state: S) => R): R;
+export function useStoreState<S, R>(selector?: any): any {
+    const {store} = useStoreContext<S, any>();
     const [, forceUpdate] = useState<{}>(Object.create(null));
-    useMemo(() => {
-        const onDispatch = () => {
-            console.log('onDispatch()');
-            forceUpdate(Object.create(null));
+    useEffect(() => {
+        const onDispatch: StoreSubscriber<S> = (previousState, currentState) => {
+            if (previousState !== currentState) {
+                if (selector) {
+                    if (selector(previousState) === selector(currentState)) {
+                        return;
+                    }
+                }
+                forceUpdate(Object.create(null));
+            }
         }
         store.subscribe(onDispatch);
-    }, [store]);
+        return () => {
+            store.unsubscribe(onDispatch);
+        }
+    }, [store, selector]);
     if (selector) {
         return selector(store.getState());
     }
