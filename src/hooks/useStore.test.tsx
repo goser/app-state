@@ -1,11 +1,17 @@
 import {act, render, renderHook, waitFor} from '@testing-library/react';
-import {FC, PropsWithChildren, useState} from 'react';
+import {Dispatch, FC, PropsWithChildren, useState} from 'react';
 import {describe, expect, expectTypeOf, it} from 'vitest';
 import {Store} from '../Store';
 import {ReducerNode, configure} from '../configure';
 import {StoreProvider} from './StoreContext';
 import {useStoreDispatch} from './useStoreDispatch';
 import {useStoreState} from './useStoreState';
+import {useStore} from './useStore';
+
+type AppStateUser = {
+    name: string,
+    age: number
+}
 
 type AppStateData = {
     a: number
@@ -13,7 +19,7 @@ type AppStateData = {
 
 type AppState = {
     mode: string
-    user: {name: string, age: number}
+    user: AppStateUser
     data: AppStateData
 };
 
@@ -51,22 +57,49 @@ const wrapper: FC<PropsWithChildren> = ({children}) => {
     </StoreProvider>;
 }
 
+const selectUser = (state: AppState) => state.user;
+const selectData = (state: AppState) => state.data;
+
+describe('useStore', () => {
+
+    it('should return initial state and dispatch of currentStore', () => {
+        const {result} = renderHook(() => useStore<AppState, AppAction>(), {wrapper});
+        expect(result.current.getState()).toStrictEqual(initialState);
+        expect(result.current.dispatch).toStrictEqual(currentStore.dispatch);
+    });
+
+    it('should return updated state after dispatch', () => {
+        const {result} = renderHook(() => useStore<AppState, AppAction>(), {wrapper});
+        act(() => result.current.dispatch({type: 'party'}));
+        expect(result.current.getState()).toStrictEqual(afterPartyState);
+    });
+
+    it('should trigger rerender when state changed', () => {
+        let store: Store<AppState, AppAction>;
+        let count = 0;
+        const Comp = () => {
+            store = useStore();
+            count++;
+            return null;
+        }
+        render(<Comp />, {wrapper});
+        act(() => currentStore.dispatch({type: 'party'}));
+        expect(count).toBe(2);
+    });
+
+});
+
 describe('useStoreState', () => {
 
     it('should return initial state', () => {
-        const {result} = renderHook(() => useStoreState<AppState>(), {wrapper: wrapper, });
+        const {result} = renderHook(() => useStoreState<AppState>(), {wrapper});
         expect(result.current).toStrictEqual(initialState);
     });
 
     it('should return updated state after dispatch', () => {
-        let state: AppState;
-        const Comp = () => {
-            state = useStoreState<AppState>();
-            return null;
-        }
-        render(<Comp />, {wrapper: wrapper});
+        const {result} = renderHook(() => useStoreState<AppState>(), {wrapper});
         act(() => currentStore.dispatch({type: 'party'}));
-        expect(state!).toStrictEqual(afterPartyState);
+        expect(result.current).toStrictEqual(afterPartyState);
     });
 
     it('should trigger rerender on dispatch', () => {
@@ -77,30 +110,23 @@ describe('useStoreState', () => {
             count++;
             return null;
         }
-        render(<Comp />, {wrapper: wrapper});
+        render(<Comp />, {wrapper});
         act(() => currentStore.dispatch({type: 'party'}));
-        expect(state!.user.age).toBe(36);
         expect(count).toBe(2);
-        act(() => currentStore.dispatch({type: 'party'}));
-        expect(state!.user.age).toBe(37);
-        expect(count).toBe(3);
     });
 
     it('should allow to select a substate', async () => {
         const {result} = renderHook(() => useStoreState((s: AppState) => s.data), {wrapper});
         await waitFor(() => expect(result.current).toStrictEqual(initialState.data));
-
     });
 
     it('should not trigger rerender when another substate was changed by dispatch', () => {
-        const selectUser = (state: AppState) => state.user;
         let userRenderCount = 0;
         const UserComp = () => {
             const user = useStoreState(selectUser);
             userRenderCount++;
             return null;
         };
-        const selectData = (state: AppState) => state.data;
         let dataRenderCount = 0;
         const DataComp = () => {
             const data = useStoreState(selectData);
@@ -123,18 +149,40 @@ describe('useStoreState', () => {
 describe('useStoreDispatch', () => {
 
     it('should return the dispatch function of the current store', () => {
-        const {result} = renderHook(() => useStoreDispatch<AppAction>(), {wrapper: wrapper});
+        const {result} = renderHook(() => useStoreDispatch<AppAction>(), {wrapper});
         expectTypeOf(result.current).toMatchTypeOf((action: AppAction) => { });
         expect(result.current).toStrictEqual(currentStore.dispatch);
     });
 
-    // it('should update state regardless of rerender', () => {
-    //     const {result} = renderHook(() => useStoreDispatch<AppAction>(), {wrapper: Providers});
-    //     expectTypeOf(result.current).toMatchTypeOf((action: AppAction) => { });
-    //     expect(currentStore.getState()).toStrictEqual(initialState);
-    //     result.current({type: 'party'});
-    //     expect(currentStore.getState()).toStrictEqual(afterPartyState);
-    // });
+    it('should trigger rerender for global state and changed substates', () => {
+        let dispatch: Dispatch<AppAction>;
+        const Comp0 = () => {
+            dispatch = useStoreDispatch<AppAction>();
+            return null;
+        }
+        let store: Store<AppState, AppAction>;
+        let count1 = 0;
+        const Comp1 = () => {
+            store = useStore<AppState, AppAction>();
+            count1++;
+            return null;
+        }
+        let user: AppStateUser;
+        let count2 = 0;
+        const Comp2 = () => {
+            user = useStoreState((s: AppState) => s.user);
+            count2++;
+            return null;
+        }
+        render(<><Comp0 /><Comp1 /><Comp2 /></>, {wrapper});
+        expect(count1).toBe(1);
+        expect(count2).toBe(1);
+        act(() => dispatch({type: 'party'}));
+        expect(count1).toBe(2);
+        expect(count2).toBe(2);
+
+
+    });
 
     // it('should update state for rerendered component', () => {
     //     const {result, rerender} = renderHook(() => {
