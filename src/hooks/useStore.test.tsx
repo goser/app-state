@@ -75,10 +75,9 @@ describe('useStore', () => {
     });
 
     it('should trigger rerender when state changed', () => {
-        let store: Store<AppState, AppAction>;
         let count = 0;
         const Comp = () => {
-            store = useStore();
+            useStore();
             count++;
             return null;
         }
@@ -104,13 +103,13 @@ describe('useStoreState', () => {
 
     it('should trigger rerender on dispatch', () => {
         let count = 0;
-        let state: AppState;
         const Comp = () => {
-            state = useStoreState<AppState>();
+            useStoreState();
             count++;
             return null;
         }
         render(<Comp />, {wrapper});
+        expect(count).toBe(1);
         act(() => currentStore.dispatch({type: 'party'}));
         expect(count).toBe(2);
     });
@@ -123,23 +122,20 @@ describe('useStoreState', () => {
     it('should not trigger rerender when another substate was changed by dispatch', () => {
         let userRenderCount = 0;
         const UserComp = () => {
-            const user = useStoreState(selectUser);
+            useStoreState(selectUser);
             userRenderCount++;
             return null;
         };
         let dataRenderCount = 0;
         const DataComp = () => {
-            const data = useStoreState(selectData);
+            useStoreState(selectData);
             dataRenderCount++;
             return null;
         };
-
         render(<><UserComp /><DataComp /></>, {wrapper});
-
         expect(userRenderCount).toBe(1);
         expect(dataRenderCount).toBe(1);
         act(() => currentStore.dispatch({type: 'party'}));
-
         expect(userRenderCount).toBe(2);
         expect(dataRenderCount).toBe(1);
     });
@@ -160,42 +156,34 @@ describe('useStoreDispatch', () => {
             dispatch = useStoreDispatch<AppAction>();
             return null;
         }
-        let store: Store<AppState, AppAction>;
         let count1 = 0;
         const Comp1 = () => {
-            store = useStore<AppState, AppAction>();
+            useStore<AppState, AppAction>();
             count1++;
             return null;
         }
-        let user: AppStateUser;
         let count2 = 0;
         const Comp2 = () => {
-            user = useStoreState((s: AppState) => s.user);
+            useStoreState((s: AppState) => s.user);
             count2++;
             return null;
         }
-        render(<><Comp0 /><Comp1 /><Comp2 /></>, {wrapper});
+        let count3 = 0;
+        const Comp3 = () => {
+            useStoreState((s: AppState) => s.data);
+            count3++;
+            return null;
+        }
+        render(<><Comp0 /><Comp1 /><Comp2 /><Comp3 /></>, {wrapper});
         expect(count1).toBe(1);
         expect(count2).toBe(1);
+        expect(count3).toBe(1);
         act(() => dispatch({type: 'party'}));
         expect(count1).toBe(2);
         expect(count2).toBe(2);
+        expect(count3).toBe(1);
 
 
     });
-
-    // it('should update state for rerendered component', () => {
-    //     const {result, rerender} = renderHook(() => {
-    //         return {
-    //             store: useStore<AppState, AppAction>(),
-    //             dispatch: useStoreDispatch<AppAction>(),
-    //         }
-    //     }, {wrapper: Providers});
-    //     expect(result.current.dispatch).toBe(result.current.store.dispatch);
-    //     expect(result.current.store.getState()).toBe(initialState);
-    //     result.current.dispatch({type: 'party'});
-    //     rerender();
-    //     expect(result.current.store.getState()).toStrictEqual(afterPartyState);
-    // });
 
 });
