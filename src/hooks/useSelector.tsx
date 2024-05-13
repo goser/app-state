@@ -2,9 +2,9 @@ import {useEffect, useState} from 'react';
 import {useStoreContext} from './StoreContext';
 import {StoreSubscriber} from '../Store';
 
-export function useStoreState<S>(): S;
-export function useStoreState<S, R>(selector?: (state: S) => R): R;
-export function useStoreState<S, R>(selector?: any): any {
+export function useSelector<S>(): S;
+export function useSelector<S, R>(selector?: (state: S) => R): R;
+export function useSelector<S, R>(selector?: any): any {
     const {store} = useStoreContext<S, any>();
     const [, forceUpdate] = useState<{}>(Object.create(null));
     useEffect(() => {

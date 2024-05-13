@@ -1,11 +1,11 @@
-import {configure} from './configure'
+import {configureStore} from './configureStore'
 
 type DodoState = {mode: 'A' | 'B'};
 type DodoAction = {type: 'init'};
 
 const initialState: DodoState = {mode: 'A'};
 
-const store = configure({
+const store = configureStore({
     reducer: (state: DodoState, action: DodoAction): DodoState => {
         switch (action.type) {
             case 'init':

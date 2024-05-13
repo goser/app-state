@@ -2,10 +2,10 @@ import {act, render, renderHook, waitFor} from '@testing-library/react';
 import {Dispatch, FC, PropsWithChildren, useState} from 'react';
 import {describe, expect, expectTypeOf, it} from 'vitest';
 import {Store} from '../Store';
-import {configure} from '../configure';
+import {configureStore} from '../configureStore';
 import {StoreProvider} from './StoreContext';
-import {useStoreDispatch} from './useStoreDispatch';
-import {useStoreState} from './useStoreState';
+import {useDispatch} from './useDispatch';
+import {useSelector} from './useSelector';
 import {useStore} from './useStore';
 import {ReducerNode} from '../Reducer';
 
@@ -48,7 +48,7 @@ const appReducer: ReducerNode<AppState, AppAction> = {
 let currentStore: Store<AppState, AppAction>;
 
 const wrapper: FC<PropsWithChildren> = ({children}) => {
-    const [store] = useState(() => configure<AppState, AppAction>({
+    const [store] = useState(() => configureStore<AppState, AppAction>({
         reducer: appReducer,
         initialState,
     }));
@@ -89,15 +89,15 @@ describe('useStore', () => {
 
 });
 
-describe('useStoreState', () => {
+describe('useSelector', () => {
 
     it('should return initial state', () => {
-        const {result} = renderHook(() => useStoreState<AppState>(), {wrapper});
+        const {result} = renderHook(() => useSelector<AppState>(), {wrapper});
         expect(result.current).toStrictEqual(initialState);
     });
 
     it('should return updated state after dispatch', () => {
-        const {result} = renderHook(() => useStoreState<AppState>(), {wrapper});
+        const {result} = renderHook(() => useSelector<AppState>(), {wrapper});
         act(() => currentStore.dispatch({type: 'party'}));
         expect(result.current).toStrictEqual(afterPartyState);
     });
@@ -105,7 +105,7 @@ describe('useStoreState', () => {
     it('should trigger rerender on dispatch', () => {
         let count = 0;
         const Comp = () => {
-            useStoreState();
+            useSelector();
             count++;
             return null;
         }
@@ -116,20 +116,20 @@ describe('useStoreState', () => {
     });
 
     it('should allow to select a substate', async () => {
-        const {result} = renderHook(() => useStoreState((s: AppState) => s.data), {wrapper});
+        const {result} = renderHook(() => useSelector((s: AppState) => s.data), {wrapper});
         await waitFor(() => expect(result.current).toStrictEqual(initialState.data));
     });
 
     it('should not trigger rerender when another substate was changed by dispatch', () => {
         let userRenderCount = 0;
         const UserComp = () => {
-            useStoreState(selectUser);
+            useSelector(selectUser);
             userRenderCount++;
             return null;
         };
         let dataRenderCount = 0;
         const DataComp = () => {
-            useStoreState(selectData);
+            useSelector(selectData);
             dataRenderCount++;
             return null;
         };
@@ -143,10 +143,10 @@ describe('useStoreState', () => {
 
 });
 
-describe('useStoreDispatch', () => {
+describe('useDispatch', () => {
 
     it('should return the dispatch function of the current store', () => {
-        const {result} = renderHook(() => useStoreDispatch<AppAction>(), {wrapper});
+        const {result} = renderHook(() => useDispatch<AppAction>(), {wrapper});
         expectTypeOf(result.current).toMatchTypeOf((action: AppAction) => { });
         expect(result.current).toStrictEqual(currentStore.dispatch);
     });
@@ -154,7 +154,7 @@ describe('useStoreDispatch', () => {
     it('should trigger rerender for global state and changed substates', () => {
         let dispatch: Dispatch<AppAction>;
         const Comp0 = () => {
-            dispatch = useStoreDispatch<AppAction>();
+            dispatch = useDispatch<AppAction>();
             return null;
         }
         let count1 = 0;
@@ -165,13 +165,13 @@ describe('useStoreDispatch', () => {
         }
         let count2 = 0;
         const Comp2 = () => {
-            useStoreState((s: AppState) => s.user);
+            useSelector((s: AppState) => s.user);
             count2++;
             return null;
         }
         let count3 = 0;
         const Comp3 = () => {
-            useStoreState((s: AppState) => s.data);
+            useSelector((s: AppState) => s.data);
             count3++;
             return null;
         }

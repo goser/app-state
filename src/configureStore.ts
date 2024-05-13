@@ -7,17 +7,14 @@ export type ConfigurationOptions<S = any, A = any> = {
     initialState: S
 };
 
-export const configure = <S = any, A = any>(options: ConfigurationOptions<S, A>): Store<S, A> => {
+export const configureStore = <S = any, A = any>(options: ConfigurationOptions<S, A>): Store<S, A> => {
     let state = options.initialState || {} as S;
     let isDispatching = false;
     let subscribers: StoreSubscriber<S>[] = [];
-
     const unsubscribe = (subscriber: StoreSubscriber<S>) => {
         subscribers = subscribers.filter(sub => sub !== subscriber);
     };
-
     const reducer = combineReducers(options.reducer);
-
     return {
         getState: () => state,
         dispatch: (action) => {

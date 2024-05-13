@@ -1,5 +1,5 @@
 import {beforeAll, beforeEach, describe, expect, it, vi} from 'vitest';
-import {configure} from './configure';
+import {configureStore} from './configureStore';
 import {Store} from './Store';
 
 describe('store', () => {
@@ -7,7 +7,7 @@ describe('store', () => {
     it('should throw if dispatch is called in reducer', () => {
         type A = {type: 'DO'}
         type S = {m: number}
-        const {dispatch} = configure<S, A>({
+        const {dispatch} = configureStore<S, A>({
             reducer: (s, a) => {
                 dispatch({type: 'DO'});
                 return s;
@@ -22,7 +22,7 @@ describe('store', () => {
     describe('subscribe', () => {
         let store: Store<{}, any>
         beforeAll(() => {
-            store = configure({
+            store = configureStore({
                 reducer: (s, a) => s,
                 initialState: {}
             });

@@ -1,12 +1,12 @@
 import {describe, expect, it} from 'vitest';
-import {configure} from './configure';
+import {configureStore} from './configureStore';
 
-describe('configure', () => {
+describe('configureStore', () => {
 
     it('should allow single reducer function', () => {
         type S = {mode: 'A' | 'B'};
         type A = {type: 'init'};
-        const store = configure<S, A>({
+        const store = configureStore<S, A>({
             reducer: (state, action) => {
                 switch (action.type) {
                     case 'init':
@@ -23,7 +23,7 @@ describe('configure', () => {
     it('should allow sub reducers for single properties', () => {
         type S = {age: number};
         type A = {type: 'birthday'};
-        const store = configure<S, A>({
+        const store = configureStore<S, A>({
             reducer: {
                 age: (s, a) => {
                     switch (a.type) {
@@ -45,7 +45,7 @@ describe('configure', () => {
     it('should allow sub reducers for object properties', () => {
         type S = {user: {name: string, age: number}};
         type A = {type: 'birthday'};
-        const store = configure<S, A>({
+        const store = configureStore<S, A>({
             reducer: {
                 user: (s, a) => {
                     switch (a.type) {
@@ -73,7 +73,7 @@ describe('configure', () => {
             user: {name: string, age: number}
         };
         type A = {type: 'birthday'} | {type: 'set_mode', value: string};
-        const store = configure<S, A>({
+        const store = configureStore<S, A>({
             reducer: [
                 (s, a) => {
                     switch (a.type) {
@@ -124,7 +124,7 @@ describe('configure', () => {
         type A = {type: 'birthday'}
         const initialSpecial = new Mode('init', 'init');
         const fixedSpecial = new Mode("fix", "fix");
-        const store = configure<S, A>({
+        const store = configureStore<S, A>({
             reducer: {
                 mode: {a: "fixed", b: "fixed"},
                 special: fixedSpecial,
@@ -178,7 +178,7 @@ describe('configure', () => {
             {type: 'update_info', value: string} |
             {type: 'add_info', value: any};
 
-        const store = configure<S, A>({
+        const store = configureStore<S, A>({
             reducer: {
                 a: (state, action) => {
                     switch (action.type) {

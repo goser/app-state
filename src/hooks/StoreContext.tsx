@@ -1,4 +1,4 @@
-import {PropsWithChildren, ReactNode, createContext, useContext, useMemo, useState} from 'react';
+import {PropsWithChildren, ReactNode, createContext, useContext, useMemo} from 'react';
 import {Store} from '../Store';
 
 type ContextType<T, A> = {
@@ -12,10 +12,6 @@ const DEFAULT: ContextType<any, any> = {
 const Context = createContext(DEFAULT);
 
 export const useStoreContext = <S, A>() => useContext<ContextType<S, A>>(Context);
-
-// TODO how to update the store inside the Context from outside configured store
-
-// export const getStorageContext = <S, A>() => Context as any as ContextType<S, A>;
 
 type StoreProviderProps<S, A> = PropsWithChildren<{
     store: Store<S, A>
