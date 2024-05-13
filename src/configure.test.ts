@@ -74,22 +74,25 @@ describe('configure', () => {
         };
         type A = {type: 'birthday'} | {type: 'set_mode', value: string};
         const store = configure<S, A>({
-            reducer: {
-                reducer: (s, a) => {
+            reducer: [
+                (s, a) => {
                     switch (a.type) {
                         case 'set_mode':
                             return {...s, mode: a.value};
                     }
                     return s;
                 },
-                user: (s, a) => {
-                    switch (a.type) {
-                        case 'birthday':
-                            return {...s, age: s.age + 1};
+                {
+                    user: (s, a) => {
+                        switch (a.type) {
+                            case 'birthday':
+                                return {...s, age: s.age + 1};
+                        }
+                        return s;
                     }
-                    return s;
-                }
-            },
+                },
+            ],
+
             initialState: {
                 mode: 'initial',
                 user: {name: 'Acorn', age: 3}
@@ -191,22 +194,24 @@ describe('configure', () => {
                     }
                     return state;
                 },
-                c: {
-                    reducer: (s, a) => {
+                c: [
+                    (s, a) => {
                         switch (a.type) {
                             case 'add_info':
                                 return {...s, additionalData: a.value}
                         }
                         return s;
                     },
-                    d: (state, action) => {
-                        switch (action.type) {
-                            case 'update_info':
-                                return {...state, info: action.value};
+                    {
+                        d: (state, action) => {
+                            switch (action.type) {
+                                case 'update_info':
+                                    return {...state, info: action.value};
+                            }
+                            return state;
                         }
-                        return state;
-                    }
-                },
+                    },
+                ],
                 e: {f: (s, a) => s}
             },
             initialState: {

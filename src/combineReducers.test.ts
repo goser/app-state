@@ -75,6 +75,24 @@ describe.only('combineReducers', () => {
         expect(app).toStrictEqual({mode: 'active', queue: [123], gobbly: {isLoading: true}});
     });
 
+    it('should allow to pass arrays of reducers', () => {
+        type Action = 'upper_case' | 'lower_case' | 'wave_case';
+        const reducer = combineReducers<string, Action>(
+            [
+                (s, a) => a === 'upper_case' ? s.toUpperCase() : s,
+                (s, a) => a === 'lower_case' ? s.toLowerCase() : s,
+            ],
+            (s, a) => a === 'wave_case' ? s.split('').map((s, i) => i % 2 === 0 ? s.toLowerCase() : s.toUpperCase()).join('') : s,
+        );
+        let state = 'Nice Words';
+        state = reducer(state, 'upper_case');
+        expect(state).toBe('NICE WORDS');
+        state = reducer(state, 'lower_case');
+        expect(state).toBe('nice words');
+        state = reducer(state, 'wave_case');
+        expect(state).toBe('nIcE WoRdS');
+    });
+
     it('should call all reducers based on declaration order', () => {
         const reducer = combineReducers<number[], any>(
             (s, a) => ([...s, 1]),

@@ -2,11 +2,12 @@ import {act, render, renderHook, waitFor} from '@testing-library/react';
 import {Dispatch, FC, PropsWithChildren, useState} from 'react';
 import {describe, expect, expectTypeOf, it} from 'vitest';
 import {Store} from '../Store';
-import {ReducerNode, configure} from '../configure';
+import {configure} from '../configure';
 import {StoreProvider} from './StoreContext';
 import {useStoreDispatch} from './useStoreDispatch';
 import {useStoreState} from './useStoreState';
 import {useStore} from './useStore';
+import {ReducerNode} from '../Reducer';
 
 type AppStateUser = {
     name: string,

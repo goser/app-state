@@ -1,8 +1,14 @@
-import {Reducer, ReducerNode} from './configure';
+import {Reducer} from 'react';
+import {ReducerNode} from './Reducer';
 
 const reduce = <S = any, A = any>(state: S, action: A, reducer: ReducerNode<S, A>): S => {
     if (typeof reducer === 'function') {
         return reducer(state, action);
+    } else if (Array.isArray(reducer)) {
+        for (const subReducer of reducer) {
+            state = reduce(state, action, subReducer);
+        }
+        return state;
     } else if (Object.getPrototypeOf(reducer) === Object.prototype) {
         const changes: Partial<S> = {};
         let hasChanges = false;
@@ -21,9 +27,6 @@ const reduce = <S = any, A = any>(state: S, action: A, reducer: ReducerNode<S, A
 
 export const combineReducers = <S, A>(...reducers: ReducerNode<S, A>[]): Reducer<S, A> => {
     return (state: S, action: A) => {
-        for (const reducer of reducers) {
-            state = reduce(state, action, reducer);
-        }
-        return state;
+        return reduce(state, action, reducers);
     }
 }
