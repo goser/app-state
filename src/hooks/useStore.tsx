@@ -15,5 +15,8 @@ export const useStore = <S, A>() => {
             store.unsubscribe(onDispatch);
         }
     }, [store]);
-    return store;
+    return {
+        dispatch: store.dispatch,
+        state: store.getState(),
+    };
 };

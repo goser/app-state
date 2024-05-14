@@ -65,14 +65,14 @@ describe('useStore', () => {
 
     it('should return initial state and dispatch of currentStore', () => {
         const {result} = renderHook(() => useStore<AppState, AppAction>(), {wrapper});
-        expect(result.current.getState()).toStrictEqual(initialState);
+        expect(result.current.state).toStrictEqual(initialState);
         expect(result.current.dispatch).toStrictEqual(currentStore.dispatch);
     });
 
     it('should return updated state after dispatch', () => {
         const {result} = renderHook(() => useStore<AppState, AppAction>(), {wrapper});
         act(() => result.current.dispatch({type: 'party'}));
-        expect(result.current.getState()).toStrictEqual(afterPartyState);
+        expect(result.current.state).toStrictEqual(afterPartyState);
     });
 
     it('should trigger rerender when state changed', () => {

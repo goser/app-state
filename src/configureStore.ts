@@ -1,4 +1,5 @@
-import {ReducerNode} from './Reducer';
+import {Dispatch} from 'react';
+import {Reducer, ReducerNode} from './Reducer';
 import {Store, StoreSubscriber} from './Store';
 import {combineReducers} from './combineReducers';
 
@@ -6,6 +7,68 @@ export type ConfigurationOptions<S = any, A = any> = {
     reducer: ReducerNode<S, A>
     initialState: S
 };
+
+const asyncStateActionLoadingExtension = '.loading';
+const asyncStateActionDoneExtension = '.done';
+
+type AsyncStateActionLoadingExtension = typeof asyncStateActionLoadingExtension;
+type AsyncStateActionDoneExtension = typeof asyncStateActionDoneExtension;
+
+type WithType<T, Type> = T & {type: Type}
+
+export const createAsyncState = <Loader extends (...args: any) => Promise<any>, Type extends string>(type: Type, loader: Loader): WithType<Loader, Type> => {
+    const callback = async (...args: any[]) => {
+        console.log('trigger start dispatch ', {type: type + asyncStateActionLoadingExtension});
+        const response = await loader.apply(null, args);
+        console.log('trigger end dispatch', {type: type + asyncStateActionDoneExtension, });
+        return response;
+    }
+    callback.type = type;
+    return callback as any as WithType<Loader, Type>;
+}
+
+type AsyncStateFunction = ((...args: any) => Promise<any>) & {type: string}
+
+export type GetActionFromAsyncState<T extends AsyncStateFunction> = {type: T['type']}
+    | {type: `${T['type']}${AsyncStateActionLoadingExtension}`}
+    | {type: `${T['type']}${AsyncStateActionDoneExtension}`, data: Awaited<ReturnType<T>>};
+
+
+type AsyncAction<A extends {type: string}> = (dispatch: Dispatch<A>) => void;
+
+let asyncActions: AsyncAction<any>[] = [];
+
+export const createAsyncReducer = <
+    Type extends string,
+    Loader extends (...args: any) => Promise<any>,
+>(type: Type, loader: Loader) => {
+    type LoadingAction = {type: `${Type}${AsyncStateActionLoadingExtension}`};
+    type DoneAction = {type: `${Type}${AsyncStateActionDoneExtension}`, data: string};
+    return <S, A extends {type: string}>(reducers: {loading?: Reducer<S, LoadingAction>, done?: Reducer<S, DoneAction>}) => {
+        return (state: S, action: A) => {
+            console.log(action);
+            switch (action.type) {
+                case type:
+                    const promise = loader();
+                    asyncActions.push((dispatch) => {
+                        promise.then(data => {
+                            dispatch({type: `${type}${asyncStateActionLoadingExtension}`, data} as any);
+                        });
+                    });
+                    if (reducers.loading) {
+                        return reducers.loading(state, action as any);
+                    }
+                    break;
+                case `${type}${asyncStateActionLoadingExtension}`:
+                    if (reducers.done) {
+                        return reducers.done(state, action as any);
+                    }
+                    break;
+            }
+            return state;
+        }
+    }
+}
 
 export const configureStore = <S = any, A = any>(options: ConfigurationOptions<S, A>): Store<S, A> => {
     let state = options.initialState || {} as S;
@@ -15,21 +78,26 @@ export const configureStore = <S = any, A = any>(options: ConfigurationOptions<S
         subscribers = subscribers.filter(sub => sub !== subscriber);
     };
     const reducer = combineReducers(options.reducer);
+
+    const dispatch = (action: A) => {
+        if (isDispatching) {
+            throw Error('Dispatch inside reducer is not allowed!');
+        }
+        const previousState = state;
+        try {
+            isDispatching = true;
+            state = reducer(state, action);
+        } finally {
+            isDispatching = false;
+            asyncActions.forEach(action => action(dispatch));
+            asyncActions = [];
+        }
+        subscribers.forEach(subscriber => subscriber(previousState, state));
+    }
+
     return {
         getState: () => state,
-        dispatch: (action) => {
-            if (isDispatching) {
-                throw Error('Dispatch inside reducer is not allowed!');
-            }
-            const previousState = state;
-            try {
-                isDispatching = true;
-                state = reducer(state, action);
-            } finally {
-                isDispatching = false;
-            }
-            subscribers.forEach(subscriber => subscriber(previousState, state));
-        },
+        dispatch,
         subscribe: (subscriber) => {
             unsubscribe(subscriber);
             subscribers.push(subscriber);

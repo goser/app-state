@@ -6,7 +6,12 @@ type ContextType<T, A> = {
 }
 
 const DEFAULT: ContextType<any, any> = {
-    store: {dispatch: () => { }, getState: () => ({}), subscribe: () => { }, unsubscribe: () => { }}
+    store: {
+        dispatch: () => { },
+        getState: () => ({}),
+        subscribe: () => { },
+        unsubscribe: () => { },
+    }
 }
 
 const Context = createContext(DEFAULT);
