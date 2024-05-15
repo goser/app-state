@@ -1,9 +1,10 @@
 import {act, cleanup, render, waitFor} from '@testing-library/react';
 import {afterEach, beforeEach, describe, expect, it} from 'vitest';
-import {GetActionFromAsyncReducer, Loaders, configureStore, createAsyncReducer, createAsyncReducerFactory, createAsyncReducerObject} from '../configureStore';
+import {GetActionFromAsyncReducer, Loaders, configureStore, createAsyncReducer, createAsyncReducerFactory, createAsyncReducerObject, createStoreConfigurator} from '../configureStore';
 import {StoreProvider} from './StoreContext';
 import {useStore} from './useStore';
 import {FC} from 'react';
+import {Store} from '../Store';
 
 const pause = (timeout = 1000) => new Promise<void>(resolve => setTimeout(() => resolve(), timeout));
 
@@ -38,13 +39,12 @@ describe('async', () => {
 
         it('variant 0', async () => {
 
-            type GetDataAction = {type: 'getData', params: {s: string, n: number}};
+            type Action = {type: 'something'} | {type: 'some'};
 
-            type Action = {type: 'something'} | GetDataAction | {type: 'some'};
-
-            const someRequest = async () => {
+            const someRequest = async (params: {s: string, n: string}) => {
                 await pause(50);
-                return {value1: 'dfwqefwfe', value2: 143243}
+                return 'JO DATA';
+                // return {value1: 'dfwqefwfe', value2: 143243}
             }
 
             const loaders = {
@@ -52,22 +52,39 @@ describe('async', () => {
                 some: someRequest,
             }
 
-            store = configureStore<State, Action, typeof loaders>({
-                loaders,
-                reducer: (s, a) => {
+            const extendedStore = createStoreConfigurator<State, Action>()
+                .addLoader('getData', someRequest)
+                .addReducer((s, a) => {
                     switch (a.type) {
-                        case 'getData': return s;
-                        case 'getData.loading':
-                            return {...s, loading: true}
+                        case 'getData.loading': return {...s, loading: true}
                         case 'getData.done':
                             return {...s, loading: false}
                     }
                     return s;
-                },
-                initialState
-            });
+                })
+                .create(initialState);
+
+            type ActionFromExtendedStore<T extends Store> = Parameters<T['dispatch']>[0]
+
+            type ExtendedActions = ActionFromExtendedStore<typeof extendedStore>;
+
+
+            // store = configureStore<State, Action, typeof loaders>({
+            //     loaders,
+            //     reducer: (s, a) => {
+            //         switch (a.type) {
+            //             case 'getData': return s;
+            //             case 'getData.loading':
+            //                 return {...s, loading: true}
+            //             case 'getData.done':
+            //                 return {...s, loading: false}
+            //         }
+            //         return s;
+            //     },
+            //     initialState
+            // });
             Comp = () => {
-                const {state, dispatch} = useStore<State, Action>();
+                const {state, dispatch} = useStore<State, ExtendedActions>();
                 return <RenderComp state={state} onClick={() => dispatch({type: 'getData', params: {s: 'my query', n: 123}})} />;
             }
         });

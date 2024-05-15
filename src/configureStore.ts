@@ -97,18 +97,9 @@ export type Loaders<A extends {type: string}> = {
     [K in A['type']]?: (...args: any) => Promise<any>
 } | undefined
 
-
-const lo = {
-    goto: () => { }
-};
-
-
-// type AddLoadersToActions<A extends {type: string}, L> = keyof L extends any ? AddAsyncActions<A, L[keyof L] extends () => Promise<any> ? L[keyof L] : never, Awaited<ReturnType<L[keyof L]>>> : A
-
 type ToReturnTypeMap<A extends {type: string}, L extends Loaders<A>> = keyof L extends any ? {
     [K in keyof L]: Awaited<ReturnType<L[K] extends () => Promise<any> ? L[K] : never>>
 } : never
-
 
 type MapReturnTypes<T> = T extends any ? {[K in keyof T]: Awaited<ReturnType<T[K] extends () => any ? T[K] : never>>} : never
 type Dupe<T, Suffix extends string> = keyof T extends any ? ({[K in keyof T]: {type: `${K extends string ? K : never}${Suffix}`, data: T[K]}}) : never
@@ -119,12 +110,85 @@ type DoneAction<T> = UnionMap<Dupe<MapReturnTypes<T>, AsyncStateActionDoneExtens
 type Dupe2<T, Suffix extends string> = keyof T extends any ? ({[K in keyof T]: {type: `${K extends string ? K : never}${Suffix}`}}) : never
 type LoadingAction<T> = UnionMap<Dupe2<T, AsyncStateActionLoadingExtension>>
 
-
 export type ConfigurationOptions<S, A extends {type: string}, L extends Loaders<A>> = {
     reducer: ReducerNode<S, A | DoneAction<L> | LoadingAction<L>>
     loaders?: L
     initialState: S
 };
+
+type Loader = (...args: any) => Promise<any>
+
+type Configurator<S, A extends {type: string}> = {
+    addLoader: <T extends string, L extends Loader>(type: T, loader: L) => Configurator<S, A | {type: T} | {type: `${T}.done`, data: Awaited<ReturnType<L>>} | {type: `${T}.loading`}>
+    addReducer: (reducer: ReducerNode<S, A>) => Configurator<S, A>
+    create: (initialState: S) => Store<S, A>
+    types: A['type']
+}
+
+export const createStoreConfigurator = <S, A extends {type: string}>(): Configurator<S, A> => {
+    const loaders: Loaders<A> = {};
+    const reducers: ReducerNode<S, A>[] = [];
+    let postActions: AsyncAction<any>[] = [];
+    const configurator: Configurator<S, A> = {
+        // TODO prevent overwriting existing actions
+        addLoader: <T extends string, L extends Loader>(type: T, loader: L): Configurator<S, A | {type: T} | {type: `${T}.done`, data: Awaited<ReturnType<L>>} | {type: `${T}.loading`}> => {
+            loaders[type] = loader;
+            reducers.push((state, action) => {
+                console.log(">>>>>>>>>>", action);
+                if (action.type === type) {
+                    postActions.push((dispatch) => {
+                        dispatch({type: `${type}${asyncStateActionLoadingExtension}`} as any);
+                        loader(action as any).then(data => {
+                            dispatch({type: `${type}${asyncStateActionDoneExtension}`, data} as any);
+                        });
+                    });
+                }
+                return state;
+            });
+            return configurator as any;
+        },
+        addReducer: (reducer: ReducerNode<S, A>) => {
+            reducers.push(reducer);
+            return configurator;
+        },
+        create: (initialState: S): Store<S, A> => {
+            let state = initialState;
+            let isDispatching = false;
+            let subscribers: StoreSubscriber<S>[] = [];
+            const unsubscribe = (subscriber: StoreSubscriber<S>) => {
+                subscribers = subscribers.filter(sub => sub !== subscriber);
+            };
+            const reducer = combineReducers(reducers);
+            const dispatch = (action: A) => {
+                if (isDispatching) {
+                    throw Error('Dispatch inside reducer is not allowed!');
+                }
+                const previousState = state;
+                try {
+                    isDispatching = true;
+                    state = reducer(state, action);
+                } finally {
+                    isDispatching = false;
+                }
+                subscribers.forEach(subscriber => subscriber(previousState, state));
+                const actions = postActions;
+                postActions = [];
+                actions.forEach(action => action(dispatch));
+            }
+            return {
+                getState: () => state,
+                dispatch,
+                subscribe: (subscriber) => {
+                    unsubscribe(subscriber);
+                    subscribers.push(subscriber);
+                },
+                unsubscribe,
+            }
+        },
+        types: '' as any
+    };
+    return configurator;
+}
 
 export const configureStore = <S, A extends {type: string}, L extends Loaders<A>>(options: ConfigurationOptions<S, A, L>): Store<S, A> => {
     let state = options.initialState || {} as S;
