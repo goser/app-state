@@ -1,12 +1,11 @@
 import {act, render, waitFor} from '@testing-library/react';
 import {describe, expect, it} from 'vitest';
-import {GetActionFromAsyncState, configureStore, createAsyncReducer, createAsyncState} from '../configureStore';
+import {GetActionFromAsyncState, configureStore, createAsyncReducerFactory, createAsyncReducer, createAsyncState} from '../configureStore';
 import {StoreProvider} from './StoreContext';
 import {useStore} from './useStore';
 import {Reducer} from 'react';
 
 const getData = createAsyncState('getData', async (queryData: string) => new Promise<string>(resolve => setTimeout(() => resolve('JO DATA'), 500)));
-
 
 describe('async', () => {
     it('should work', async () => {
@@ -15,12 +14,34 @@ describe('async', () => {
         // TODO return reducer
         // TODO generate Action Types
         // TODO map parameters to Action Props
-        type Action = {type: 'send'} | {type: 'response', data: string} | GetActionFromAsyncState<typeof getData> | {type: 'getData2'};
-        const getData2 = createAsyncReducer('getData2', async (queryData: string) => new Promise<string>(resolve => setTimeout(() => resolve('JO DATA'), 500)));
+        type Action = {type: 'send'}
+            | {type: 'response', data: string}
+            | GetActionFromAsyncState<typeof getData>
+            | {type: 'getData2', query: string}
+            | {type: 'something'}
+            | {type: 'getData3', query: string, id: number};
+
         const initialState = {loading: false};
+
+        const getData2 = createAsyncReducer('getData2', async (queryData: string) => new Promise<string>(resolve => setTimeout(() => resolve('JO DATA'), 500)));
+
+        const factory = createAsyncReducerFactory<Action>()
+        const getData3 = factory.create('getData3', async (action) => {
+            await new Promise<void>(resolve => setTimeout(() => resolve(), 500));
+            return 'JO DATA';
+        });
 
         const store = configureStore<State, Action>({
             reducer: [
+                getData3((s, a) => {
+                    switch (a.type) {
+                        case 'getData3.loading':
+                            return {...s, loading: true};
+                        case 'getData3.done':
+                            return ({...s, loading: false, data: a.data});
+                    }
+                    return s;
+                }),
                 getData2({
                     loading: (s, a) => ({...s, loading: true}),
                     done: (s, a) => ({...s, loading: false, data: a.data}),
@@ -45,7 +66,7 @@ describe('async', () => {
                 // dispatch({type: 'send'});
                 // sendRequest().then(response => dispatch({type: 'response', data: response}));
                 // getData("some query");
-                dispatch({type: 'getData2'})
+                dispatch({type: 'getData3', query: 'query me this', id: 1})
             };
             return <div>
                 {loading && <div>IS LOADING</div>}

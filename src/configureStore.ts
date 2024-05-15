@@ -38,6 +38,34 @@ type AsyncAction<A extends {type: string}> = (dispatch: Dispatch<A>) => void;
 
 let asyncActions: AsyncAction<any>[] = [];
 
+type AddAsyncActions<A extends {type: string}, Type extends string, Data> = A
+    | {type: `${Type}${AsyncStateActionLoadingExtension}`}
+    | {type: `${Type}${AsyncStateActionDoneExtension}`, data: Data}
+
+export const createAsyncReducerFactory = <Action extends {type: string},>() => {
+    return {
+        create: <Type extends Action['type'], Loader extends (action: Extract<Action, {type: Type}>) => Promise<any>>(typeString: Type, loader: Loader) => {
+            return <S, A extends {type: string}>(reducer: Reducer<S, AddAsyncActions<A, Type, Awaited<ReturnType<Loader>>>>) => {
+                return (state: S, action: A) => {
+                    console.log(' action', action);
+                    switch (action.type) {
+                        case typeString:
+                            const promise = loader(action as any);
+                            asyncActions.push((dispatch) => {
+                                dispatch({type: `${typeString}${asyncStateActionLoadingExtension}`} as any);
+                                promise.then(data => {
+                                    dispatch({type: `${typeString}${asyncStateActionDoneExtension}`, data} as any);
+                                });
+                            });
+                            break;
+                    }
+                    return reducer(state, action);
+                };
+            }
+        }
+    }
+}
+
 export const createAsyncReducer = <
     Type extends string,
     Loader extends (...args: any) => Promise<any>,
@@ -89,8 +117,9 @@ export const configureStore = <S = any, A = any>(options: ConfigurationOptions<S
             state = reducer(state, action);
         } finally {
             isDispatching = false;
-            asyncActions.forEach(action => action(dispatch));
+            const actions = asyncActions;
             asyncActions = [];
+            actions.forEach(action => action(dispatch));
         }
         subscribers.forEach(subscriber => subscriber(previousState, state));
     }
