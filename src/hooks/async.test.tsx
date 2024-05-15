@@ -1,88 +1,147 @@
-import {act, render, waitFor} from '@testing-library/react';
-import {describe, expect, it} from 'vitest';
-import {GetActionFromAsyncState, configureStore, createAsyncReducerFactory, createAsyncReducer, createAsyncState} from '../configureStore';
+import {act, cleanup, render, waitFor} from '@testing-library/react';
+import {afterEach, beforeEach, describe, expect, it} from 'vitest';
+import {GetActionFromAsyncReducer, configureStore, createAsyncReducer, createAsyncReducerFactory, createAsyncReducerObject} from '../configureStore';
 import {StoreProvider} from './StoreContext';
 import {useStore} from './useStore';
-import {Reducer} from 'react';
+import {FC} from 'react';
 
-const getData = createAsyncState('getData', async (queryData: string) => new Promise<string>(resolve => setTimeout(() => resolve('JO DATA'), 500)));
+const pause = (timeout = 1000) => new Promise<void>(resolve => setTimeout(() => resolve(), timeout));
 
 describe('async', () => {
-    it('should work', async () => {
-        type State = {loading: boolean, data?: string}
 
-        // TODO return reducer
-        // TODO generate Action Types
-        // TODO map parameters to Action Props
-        type Action = {type: 'send'}
-            | {type: 'response', data: string}
-            | GetActionFromAsyncState<typeof getData>
-            | {type: 'getData2', query: string}
-            | {type: 'something'}
-            | {type: 'getData3', query: string, id: number};
+    afterEach(() => {
+        cleanup();
+    });
 
-        const initialState = {loading: false};
+    describe('variants', () => {
+        type State = {loading: boolean, data?: string, sub: {a: string}};
 
-        const getData2 = createAsyncReducer('getData2', async (queryData: string) => new Promise<string>(resolve => setTimeout(() => resolve('JO DATA'), 500)));
+        let initialState: State;
 
-        const factory = createAsyncReducerFactory<Action>()
-        const getData3 = factory.create('getData3', async (action) => {
-            await new Promise<void>(resolve => setTimeout(() => resolve(), 500));
-            return 'JO DATA';
-        });
-
-        const store = configureStore<State, Action>({
-            reducer: [
-                getData3((s, a) => {
-                    switch (a.type) {
-                        case 'getData3.loading':
-                            return {...s, loading: true};
-                        case 'getData3.done':
-                            return ({...s, loading: false, data: a.data});
-                    }
-                    return s;
-                }),
-                getData2({
-                    loading: (s, a) => ({...s, loading: true}),
-                    done: (s, a) => ({...s, loading: false, data: a.data}),
-                }),
-                (s, a) => {
-                    switch (a.type) {
-                        case 'send': return {...s, loading: true};
-                        case 'response': return {...s, loading: false, data: a.data};
-                        case 'getData.loading': return {...s, loading: true};
-                        case 'getData.done': return {...s, loading: false, data: a.type};
-                    }
-                    return s;
-                }
-            ],
-            initialState
-        });
-
-        const Comp = () => {
-            const {state, dispatch} = useStore<State, Action>();
-            const {loading, data} = state;
-            const onClick = () => {
-                // dispatch({type: 'send'});
-                // sendRequest().then(response => dispatch({type: 'response', data: response}));
-                // getData("some query");
-                dispatch({type: 'getData3', query: 'query me this', id: 1})
-            };
+        const RenderComp: FC<{onClick: () => void, state: State}> = ({onClick, state}) => {
+            const {loading, data, sub} = state;
             return <div>
                 {loading && <div>IS LOADING</div>}
+                {sub.a && <div>{sub.a}</div>}
                 {<div data-testid='data'>{data ? data : 'NO DATA'}</div>}
-                <button onClick={onClick}>SEND</button>
+                <button onClick={() => onClick()}>SEND</button>
             </div>;
         }
-        const result = render(<StoreProvider store={store}><Comp /></StoreProvider>);
-        expect(result.queryByText('IS LOADING')).toBeNull();
-        expect((await result.findByTestId('data')).textContent).toBe('NO DATA');
-        await act(() => result.findByText('SEND').then(b => b.click()));
-        expect(result.queryByText('IS LOADING')).not.toBeNull();
-        expect((await result.findByTestId('data')).textContent).toBe('NO DATA');
-        await new Promise(res => setTimeout(() => res(null), 1000));
-        await waitFor(async () => expect((await result.findByTestId('data')).textContent).toBe('JO DATA'))
 
+        let Comp: FC;
+
+        let store: any;
+
+        beforeEach(() => {
+            initialState = {loading: false, sub: {a: 'A'}};
+        });
+
+        it('variant 1', async () => {
+            const getDataReducer = createAsyncReducer('getData', async (params: {s: string, n: number}) => {
+                await pause(50);
+                return 'JO DATA';
+            });
+
+            type Action = {type: 'something'} | GetActionFromAsyncReducer<typeof getDataReducer>;
+
+            store = configureStore<State, Action>({
+                reducer: [
+                    getDataReducer,
+                    (s, a) => {
+                        switch (a.type) {
+                            case 'something': return s;
+                            case 'getData.loading': return {...s, loading: true};
+                            case 'getData.done': return {...s, loading: false, data: a.data};
+                        }
+                        return s;
+                    },
+                ],
+                initialState
+            });
+
+            Comp = () => {
+                const {state, dispatch} = useStore<State, Action>();
+                return <RenderComp state={state} onClick={() => dispatch({type: 'getData', params: {s: 'my query', n: 123}})} />;
+            }
+        });
+
+        it('variant 2', async () => {
+            type Action = {type: 'something'}
+                | {type: 'getData2', query: string};
+
+            const getData2 = createAsyncReducerObject('getData2', async (queryData: string) => {
+                await pause(50);
+                return 'JO DATA';
+            });
+
+            store = configureStore<State, Action>({
+                reducer: [
+                    getData2({
+                        loading: (s, a) => ({...s, loading: true}),
+                        done: (s, a) => ({...s, loading: false, data: a.data}),
+                    }),
+                    (s, a) => {
+                        switch (a.type) {
+                            case 'something': return s;
+                        }
+                        return s;
+                    }
+                ],
+                initialState
+            });
+
+            Comp = () => {
+                const {state, dispatch} = useStore<State, Action>();
+                return <RenderComp state={state} onClick={() => dispatch({type: 'getData2', query: 'my query'})} />;
+            }
+        });
+        it('variant 3', async () => {
+            type Action = {type: 'something'}
+                | {type: 'getData3', query: string, id: number};
+
+            const factory = createAsyncReducerFactory<Action>()
+            const getData3 = factory.create('getData3', async (action) => {
+                await pause(50);
+                return 'JO DATA';
+            });
+
+            store = configureStore<State, Action>({
+                reducer: [
+                    getData3((s, a) => {
+                        switch (a.type) {
+                            case 'getData3.loading':
+                                return {...s, loading: true};
+                            case 'getData3.done':
+                                return ({...s, loading: false, data: a.data});
+                        }
+                        return s;
+                    }),
+                    (s, a) => {
+                        switch (a.type) {
+                            case 'something': return s;
+                        }
+                        return s;
+                    }
+                ],
+                initialState
+            });
+
+            Comp = () => {
+                const {state, dispatch} = useStore<State, Action>();
+                return <RenderComp state={state} onClick={() => dispatch({type: 'getData3', query: 'query me this', id: 1})} />;
+            }
+        });
+
+        afterEach(async () => {
+            const result = render(<StoreProvider store={store}><Comp /></StoreProvider>);
+            expect(result.queryByText('IS LOADING')).toBeNull();
+            expect((await result.findByTestId('data')).textContent).toBe('NO DATA');
+            await act(() => result.findByText('SEND').then(b => b.click()));
+            expect(result.queryByText('IS LOADING')).not.toBeNull();
+            expect((await result.findByTestId('data')).textContent).toBe('NO DATA');
+            await waitFor(async () => expect((await result.findByTestId('data')).textContent).toBe('JO DATA'))
+        });
 
     });
+
 })
