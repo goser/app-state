@@ -3,11 +3,6 @@ import {Reducer, ReducerNode} from './Reducer';
 import {Store, StoreSubscriber} from './Store';
 import {combineReducers} from './combineReducers';
 
-export type ConfigurationOptions<S = any, A = any> = {
-    reducer: ReducerNode<S, A>
-    initialState: S
-};
-
 const asyncStateActionLoadingExtension = '.loading';
 const asyncStateActionDoneExtension = '.done';
 
@@ -98,7 +93,40 @@ export const createAsyncReducerObject = <
     }
 }
 
-export const configureStore = <S = any, A = any>(options: ConfigurationOptions<S, A>): Store<S, A> => {
+export type Loaders<A extends {type: string}> = {
+    [K in A['type']]?: (...args: any) => Promise<any>
+} | undefined
+
+
+const lo = {
+    goto: () => { }
+};
+
+
+// type AddLoadersToActions<A extends {type: string}, L> = keyof L extends any ? AddAsyncActions<A, L[keyof L] extends () => Promise<any> ? L[keyof L] : never, Awaited<ReturnType<L[keyof L]>>> : A
+
+type ToReturnTypeMap<A extends {type: string}, L extends Loaders<A>> = keyof L extends any ? {
+    [K in keyof L]: Awaited<ReturnType<L[K] extends () => Promise<any> ? L[K] : never>>
+} : never
+
+
+type MapReturnTypes<T> = T extends any ? {[K in keyof T]: Awaited<ReturnType<T[K] extends () => any ? T[K] : never>>} : never
+type Dupe<T, Suffix extends string> = keyof T extends any ? ({[K in keyof T]: {type: `${K extends string ? K : never}${Suffix}`, data: T[K]}}) : never
+type UnionMap<T> = T[keyof T]
+
+type DoneAction<T> = UnionMap<Dupe<MapReturnTypes<T>, AsyncStateActionDoneExtension>>
+
+type Dupe2<T, Suffix extends string> = keyof T extends any ? ({[K in keyof T]: {type: `${K extends string ? K : never}${Suffix}`}}) : never
+type LoadingAction<T> = UnionMap<Dupe2<T, AsyncStateActionLoadingExtension>>
+
+
+export type ConfigurationOptions<S, A extends {type: string}, L extends Loaders<A>> = {
+    reducer: ReducerNode<S, A | DoneAction<L> | LoadingAction<L>>
+    loaders?: L
+    initialState: S
+};
+
+export const configureStore = <S, A extends {type: string}, L extends Loaders<A>>(options: ConfigurationOptions<S, A, L>): Store<S, A> => {
     let state = options.initialState || {} as S;
     let isDispatching = false;
     let subscribers: StoreSubscriber<S>[] = [];

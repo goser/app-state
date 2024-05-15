@@ -1,6 +1,6 @@
 import {act, cleanup, render, waitFor} from '@testing-library/react';
 import {afterEach, beforeEach, describe, expect, it} from 'vitest';
-import {GetActionFromAsyncReducer, configureStore, createAsyncReducer, createAsyncReducerFactory, createAsyncReducerObject} from '../configureStore';
+import {GetActionFromAsyncReducer, Loaders, configureStore, createAsyncReducer, createAsyncReducerFactory, createAsyncReducerObject} from '../configureStore';
 import {StoreProvider} from './StoreContext';
 import {useStore} from './useStore';
 import {FC} from 'react';
@@ -36,6 +36,42 @@ describe('async', () => {
             initialState = {loading: false, sub: {a: 'A'}};
         });
 
+        it('variant 0', async () => {
+
+            type GetDataAction = {type: 'getData', params: {s: string, n: number}};
+
+            type Action = {type: 'something'} | GetDataAction | {type: 'some'};
+
+            const someRequest = async () => {
+                await pause(50);
+                return {value1: 'dfwqefwfe', value2: 143243}
+            }
+
+            const loaders = {
+                getData: someRequest,
+                some: someRequest,
+            }
+
+            store = configureStore<State, Action, typeof loaders>({
+                loaders,
+                reducer: (s, a) => {
+                    switch (a.type) {
+                        case 'getData': return s;
+                        case 'getData.loading':
+                            return {...s, loading: true}
+                        case 'getData.done':
+                            return {...s, loading: false}
+                    }
+                    return s;
+                },
+                initialState
+            });
+            Comp = () => {
+                const {state, dispatch} = useStore<State, Action>();
+                return <RenderComp state={state} onClick={() => dispatch({type: 'getData', params: {s: 'my query', n: 123}})} />;
+            }
+        });
+
         it('variant 1', async () => {
             const getDataReducer = createAsyncReducer('getData', async (params: {s: string, n: number}) => {
                 await pause(50);
@@ -67,16 +103,16 @@ describe('async', () => {
 
         it('variant 2', async () => {
             type Action = {type: 'something'}
-                | {type: 'getData2', query: string};
+                | {type: 'getData', query: string};
 
-            const getData2 = createAsyncReducerObject('getData2', async (queryData: string) => {
+            const getData = createAsyncReducerObject('getData', async (queryData: string) => {
                 await pause(50);
                 return 'JO DATA';
             });
 
             store = configureStore<State, Action>({
                 reducer: [
-                    getData2({
+                    getData({
                         loading: (s, a) => ({...s, loading: true}),
                         done: (s, a) => ({...s, loading: false, data: a.data}),
                     }),
@@ -92,15 +128,16 @@ describe('async', () => {
 
             Comp = () => {
                 const {state, dispatch} = useStore<State, Action>();
-                return <RenderComp state={state} onClick={() => dispatch({type: 'getData2', query: 'my query'})} />;
+                return <RenderComp state={state} onClick={() => dispatch({type: 'getData', query: 'my query'})} />;
             }
         });
+
         it('variant 3', async () => {
             type Action = {type: 'something'}
-                | {type: 'getData3', query: string, id: number};
+                | {type: 'getData', query: string, id: number};
 
             const factory = createAsyncReducerFactory<Action>()
-            const getData3 = factory.create('getData3', async (action) => {
+            const getData3 = factory.create('getData', async (action) => {
                 await pause(50);
                 return 'JO DATA';
             });
@@ -109,9 +146,9 @@ describe('async', () => {
                 reducer: [
                     getData3((s, a) => {
                         switch (a.type) {
-                            case 'getData3.loading':
+                            case 'getData.loading':
                                 return {...s, loading: true};
-                            case 'getData3.done':
+                            case 'getData.done':
                                 return ({...s, loading: false, data: a.data});
                         }
                         return s;
@@ -128,7 +165,7 @@ describe('async', () => {
 
             Comp = () => {
                 const {state, dispatch} = useStore<State, Action>();
-                return <RenderComp state={state} onClick={() => dispatch({type: 'getData3', query: 'query me this', id: 1})} />;
+                return <RenderComp state={state} onClick={() => dispatch({type: 'getData', query: 'query me this', id: 1})} />;
             }
         });
 
