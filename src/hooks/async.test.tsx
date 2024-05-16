@@ -1,10 +1,11 @@
 import {act, cleanup, render, waitFor} from '@testing-library/react';
+import {FC} from 'react';
 import {afterEach, beforeEach, describe, expect, it} from 'vitest';
-import {GetActionFromAsyncReducer, Loaders, configureStore, createAsyncReducer, createAsyncReducerFactory, createAsyncReducerObject, createStoreConfigurator} from '../configureStore';
+import {GetActionFromAsyncReducer, configureStore, createAsyncReducer, createAsyncReducerObject} from '../store/configureStore';
+import {createAsyncReducerFactory} from '../store/createAsyncReducerFactory';
+import {createStoreConfigurator} from '../store/createStoreConfigurator';
 import {StoreProvider} from './StoreContext';
 import {useStore} from './useStore';
-import {FC} from 'react';
-import {Store} from '../Store';
 
 const pause = (timeout = 1000) => new Promise<void>(resolve => setTimeout(() => resolve(), timeout));
 

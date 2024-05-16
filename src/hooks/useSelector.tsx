@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
 import {useStoreContext} from './StoreContext';
-import {StoreSubscriber} from '../Store';
+import {StoreSubscriber} from '../store/Store';
 
 export function useSelector<S>(): S;
 export function useSelector<S, R>(selector?: (state: S) => R): R;

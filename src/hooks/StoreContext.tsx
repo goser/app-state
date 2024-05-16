@@ -1,5 +1,5 @@
 import {PropsWithChildren, ReactNode, createContext, useContext, useMemo} from 'react';
-import {Store} from '../Store';
+import {Store} from '../store/Store';
 
 type ContextType<T, A> = {
     store: Store<T, A>

@@ -1,6 +1,6 @@
-import {beforeAll, beforeEach, describe, expect, it, vi} from 'vitest';
-import {configureStore} from './configureStore';
+import {beforeAll, describe, expect, it, vi} from 'vitest';
 import {Store} from './Store';
+import {configureStore} from './configureStore';
 
 describe('store', () => {
 
