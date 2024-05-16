@@ -41,15 +41,9 @@ describe('async', () => {
 
             type Action = {type: 'something'} | {type: 'some'};
 
-            const someRequest = async (params: {s: string, n: string}) => {
+            const someRequest = async (params: {s: string, n: number}) => {
                 await pause(50);
                 return 'JO DATA';
-                // return {value1: 'dfwqefwfe', value2: 143243}
-            }
-
-            const loaders = {
-                getData: someRequest,
-                some: someRequest,
             }
 
             const extendedStore = createStoreConfigurator<State, Action>()
@@ -58,31 +52,15 @@ describe('async', () => {
                     switch (a.type) {
                         case 'getData.loading': return {...s, loading: true}
                         case 'getData.done':
-                            return {...s, loading: false}
+                            return {...s, loading: false, data: a.data}
                     }
                     return s;
                 })
                 .create(initialState);
 
-            type ActionFromExtendedStore<T extends Store> = Parameters<T['dispatch']>[0]
+            type ExtendedActions = Parameters<(typeof extendedStore)['dispatch']>[0];
+            store = extendedStore;
 
-            type ExtendedActions = ActionFromExtendedStore<typeof extendedStore>;
-
-
-            // store = configureStore<State, Action, typeof loaders>({
-            //     loaders,
-            //     reducer: (s, a) => {
-            //         switch (a.type) {
-            //             case 'getData': return s;
-            //             case 'getData.loading':
-            //                 return {...s, loading: true}
-            //             case 'getData.done':
-            //                 return {...s, loading: false}
-            //         }
-            //         return s;
-            //     },
-            //     initialState
-            // });
             Comp = () => {
                 const {state, dispatch} = useStore<State, ExtendedActions>();
                 return <RenderComp state={state} onClick={() => dispatch({type: 'getData', params: {s: 'my query', n: 123}})} />;
