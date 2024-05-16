@@ -2,9 +2,15 @@ import {useEffect, useState} from 'react';
 import {useStoreContext} from './StoreContext';
 import {StoreSubscriber} from '../store/Store';
 
-export function useSelector<S>(): S;
-export function useSelector<S, R>(selector?: (state: S) => R): R;
-export function useSelector<S, R>(selector?: any): any {
+export interface UseSelector<State = unknown> {
+
+    <S extends State = State, R = unknown>(selector: (state: S) => R): R
+    <S extends State = State, R = unknown>(): S
+
+    wrap: <S extends State>() => UseSelector<S>
+}
+
+const useSelectorIntern = <S, R>(selector?: (state: S) => R) => {
     const {store} = useStoreContext<S, any>();
     const [, forceUpdate] = useState<{}>(Object.create(null));
     useEffect(() => {
@@ -27,4 +33,10 @@ export function useSelector<S, R>(selector?: any): any {
         return selector(store.getState());
     }
     return store.getState();
-};
+}
+
+Object.assign(useSelectorIntern, {
+    wrap: () => useSelectorIntern
+});
+
+export const useSelector = useSelectorIntern as UseSelector;

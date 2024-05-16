@@ -12,6 +12,7 @@
         "vitest": "^1.5.3"
     },
     "scripts": {
+        "build": "./node_modules/.bin/esbuild src/app/main.tsx --bundle --outdir=build",
         "test": "vitest"
     }
 }

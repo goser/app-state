@@ -6,8 +6,7 @@ import {createAsyncReducerFactory} from '../store/createAsyncReducerFactory';
 import {createStoreConfigurator} from '../store/createStoreConfigurator';
 import {StoreProvider} from './StoreContext';
 import {useStore} from './useStore';
-
-const pause = (timeout = 1000) => new Promise<void>(resolve => setTimeout(() => resolve(), timeout));
+import {pause} from '../pause';
 
 describe('async', () => {
 

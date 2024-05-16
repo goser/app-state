@@ -7,7 +7,7 @@ import {TypedAction} from './TypedAction';
 type AsyncStateReducer = ((...args: any) => Promise<any>) & {type: string, loader: (...args: any) => Promise<any>}
 
 export type GetActionFromAsyncReducer<T extends AsyncStateReducer> =
-    {type: T['type'], params: Parameters<T['loader']>[0]}
+    (Parameters<T['loader']>['length'] extends 0 ? {type: T['type']} : {type: T['type'], params: Parameters<T['loader']>[0]})
     | {type: `${T['type']}${AsyncActionLoadingSuffix}`}
     | {type: `${T['type']}${AsyncActionDoneSuffix}`, data: Awaited<ReturnType<T['loader']>>};
 
