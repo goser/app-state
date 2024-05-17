@@ -132,14 +132,14 @@ describe('async', () => {
                 | {type: 'getData', query: string, id: number};
 
             const factory = createAsyncReducerFactory<Action>()
-            const getData3 = factory.create('getData', async (action) => {
+            const getData = factory.create('getData', async (action) => {
                 await pause(50);
                 return 'JO DATA';
             });
 
             store = configureStore<State, Action>({
                 reducer: [
-                    getData3((s, a) => {
+                    getData((s, a) => {
                         switch (a.type) {
                             case 'getData.loading':
                                 return {...s, loading: true};
@@ -153,7 +153,7 @@ describe('async', () => {
                             case 'something': return s;
                         }
                         return s;
-                    }
+                    },
                 ],
                 initialState
             });
