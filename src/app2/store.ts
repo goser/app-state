@@ -1,10 +1,8 @@
 import {useDispatch} from '../hooks/useDispatch';
 import {useSelector} from '../hooks/useSelector';
 import {pause} from '../pause';
-import {Reducer} from '../reducer/Reducer';
-import {TypedAction} from '../store/TypedAction';
-import {configureStore} from '../store/configureStore';
-import {AddAsyncActions} from '../store/createAsyncReducerFactory';
+import {ExtractAction} from '../store/ExtractAction';
+import {Configurator} from './Configurator';
 
 type BaseAction = {type: 'some-action'}
 
@@ -13,6 +11,7 @@ export type AppState = {
         show: boolean,
         loading: boolean,
         list: string[],
+        wording: () => string,
     }
 }
 
@@ -21,6 +20,7 @@ const initialState: AppState = {
         show: false,
         list: [],
         loading: false,
+        wording: () => 'test'
     }
 }
 
@@ -35,70 +35,46 @@ const loadUserList = async () => {
     ]
 }
 
-
-type AA = 'A' | 'B' | 'C'
-type DD = Exclude<'D', AA>
-
-
-
-
-type ConfiguratorInstane<State, Action extends TypedAction> = {
-    store: () => ConfiguratorInstane<State, Action>
-    addReducer: (reducer: Reducer<State, Action>) => ConfiguratorInstane<State, Action>
-    addCase: <Type extends Action['type']>(
-        type: Type,
-        handler: (state: State, action: Action) => void
-    ) => ConfiguratorInstane<State, Action>
-    addAsyncAction: <Type extends string>(
-        type: Exclude<Type, Action['type']>,
-        promiseCreator: (...args: any) => Promise<any>
-    ) => ConfiguratorInstane<State, Action>
-};
-
-type ConfiguratorGlobal = {
-    store: <State, Action extends TypedAction>() => ConfiguratorInstane<State, Action>
-}
-
-const Configurator: ConfiguratorGlobal = null as any;
-
 export const store = Configurator
+
+    // create a scoped store configurator
     .store<AppState, BaseAction>()
+
+    // reducer on root
     .addReducer((s, a) => s)
+
+    // simple case on root
     .addCase('some-action', (s, a) => {
         return s;
     })
+
     // async action with action extending
-    // extra actions are available in following configuration calls
     .addAsyncAction('show-user-list', loadUserList)
+    // now the async action type is available for cases and reducers
     .addCase('show-user-list', (s, a) => {
         return s;
     })
-    // single case on root
-    // configurator for sub state
-    .sub(
+    // configurator for nested state
+    .nested(
         // selector
         s => s.userList,
-        // sub configuration
-        subConfigurator => subConfigurator
-            // single cases on sub state 'userList'
+        // nested state configuration
+        config => config
+            // single cases on nested state 'userList'
             .addCase('show-user-list', (s, a) => s.show = true)
             .addCase('show-user-list.loading', (s, a) => s.loading = true)
             .addCase('show-user-list.done', (s, a) => {
                 s.loading = false;
                 s.list = a.data;
             })
+            // simple reducer on nested state
             .addReducer((s, a) => {
                 return s;
             }))
-    // classic reducer
-    .addReducer((s, a) => {
-        return s;
-    })
-    // classic reducer for sub state (by selector)
-    // short form for sub() and subConfigurator.addReducer()
-    .addReducer(s => s.userList, (s, a) => {
-        return s;
-    })
+
+    // add a reducer for a nested state
+    .addReducer(s => s.userList, (s, a) => s)
+
     .create(initialState);
 
 
