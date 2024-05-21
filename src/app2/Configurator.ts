@@ -43,13 +43,11 @@ type ParentOrBase<State, Action extends TypedAction> = State extends Function
         : Base<State, Action>)
 
 export interface Configurator<State, Action extends TypedAction> extends Parent<State, Action> {
-
-    // TODO fix params handling for start action
     addAsyncAction: <Type extends string, L extends Loader>(
         type: Exclude<Type, Action['type']>,
         promiseCreator: L
     ) => Configurator<State, Action
-        | {type: Type}
+        | (Parameters<L>['length'] extends 1 ? {type: Type, params: Parameters<L>} : {type: Type})
         | {type: `${Type}${AsyncActionDoneSuffix}`, data: Awaited<ReturnType<L>>}
         | {type: `${Type}${AsyncActionLoadingSuffix}`}>
 
@@ -72,7 +70,6 @@ const createPathResolvingProxy = <S>(state: S, path: (string | symbol)[]): S => 
 type SelectorPath = (string | symbol)[];
 
 const resolvePathForSelector = <S, R = unknown>(state: S, selector: (state: S) => R) => {
-    console.log('resolvePathForSelector');
     const path: SelectorPath = [];
     const proxy = createPathResolvingProxy<S>(state, path);
     selector(proxy);

@@ -174,4 +174,6 @@ describe('Configurator', () => {
         await waitFor(() => expect(store.getState()).toStrictEqual({prop: 'C'}));
     });
 
+    it.skip('should allow optional loader params to action', () => { });
+
 });
