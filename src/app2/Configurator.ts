@@ -1,170 +1,198 @@
 import {combineReducers} from '../combineReducers';
-import {ReducerNode} from '../reducer/Reducer';
+import {Reducer, ReducerNode} from '../reducer/Reducer';
 import {AsyncAction, AsyncActionDoneSuffix, AsyncActionLoadingSuffix, asyncActionDoneSuffix, asyncActionLoadingSuffix} from '../store/AsyncAction';
 import {Loader} from '../store/Loader';
 import {Store, StoreSubscriber} from '../store/Store';
 import {TypedAction} from '../store/TypedAction';
 
-type AddReducer<State, Action extends TypedAction> = {
+type AddReducer<State, Action extends TypedAction, Self> = {
 
     <S extends State, R = unknown>(
         selector: (state: S) => R,
         reducer: ReducerNode<R, Action>
-    ): Configurator<State, Action>
+    ): Self
 
-    (reducer: ReducerNode<State, Action>): Configurator<State, Action>
-
+    (reducer: ReducerNode<State, Action>): Self
 }
 
-type BaseConfigurator<State, Action extends TypedAction> = {
-
-    addReducer: AddReducer<State, Action>
-
-    addCase: <Type extends Action['type']>(
+interface AddCase<State, Action extends TypedAction, Self> {
+    <Type extends Action['type']>(
         type: Type,
-        handler: (state: State, action: Extract<Action, {type: Type}>) => void
-    ) => Configurator<State, Action>
+        handler: State extends object ? (state: State, action: Extract<Action, {type: Type}>) => void : Reducer<State, Extract<Action, {type: Type}>>
+    ): Self
 }
 
-type ParentBaseConfigurator<State extends Object, Action extends TypedAction> = BaseConfigurator<State, Action> & {
+interface Base<State, Action extends TypedAction> {
+    addReducer: AddReducer<State, Action, this>
+    addCase: AddCase<State, Action, this>
+}
+
+interface Parent<State, Action extends TypedAction> {
+    addReducer: AddReducer<State, Action, this>
+    addCase: AddCase<State, Action, this>
     nested: <R = unknown>(
         selector: (state: State) => R,
-        handler: (config: DecidedConfigurator<R, Action>) => Configurator<R, Action>
-    ) => BaseConfigurator<State, Action>
+        handler: <C extends ParentOrBase<R, Action>>(config: C) => C
+    ) => this
 }
 
-type DecidedConfigurator<State, Action extends TypedAction> = State extends Function
-    ? BaseConfigurator<State, Action>
+type ParentOrBase<State, Action extends TypedAction> = State extends Function
+    ? Base<State, Action>
     : (State extends object
-        ? ParentBaseConfigurator<State, Action>
-        : BaseConfigurator<State, Action>)
+        ? Parent<State, Action>
+        : Base<State, Action>)
 
-type Configurator<State, Action extends TypedAction> = DecidedConfigurator<State, Action> & {
+export interface Configurator<State, Action extends TypedAction> extends Parent<State, Action> {
 
+    // TODO fix params handling for start action
     addAsyncAction: <Type extends string, L extends Loader>(
         type: Exclude<Type, Action['type']>,
         promiseCreator: L
     ) => Configurator<State, Action
-        | {type: Type, params: Parameters<L>[0]}
+        | {type: Type}
         | {type: `${Type}${AsyncActionDoneSuffix}`, data: Awaited<ReturnType<L>>}
         | {type: `${Type}${AsyncActionLoadingSuffix}`}>
 
     create: (initialState: State) => Store<State, Action>
-
 };
 
-const createNestedConfigurator = <S, A extends TypedAction>(): BaseConfigurator<S, A> => {
+const createPathResolvingProxy = <S>(state: S, path: (string | symbol)[]): S => {
+    return new Proxy(state as object, {
+        get(target, p) {
+            path.push(p);
+            const value = (target as any)[p];
+            if (typeof value === 'object' && value !== null && value !== undefined) {
+                return createPathResolvingProxy(value, path);
+            }
+            return value;
+        },
+    }) as any;
+};
 
-    const config: BaseConfigurator<S, A> = {
-        addReducer
-    }
-    return config;
+type SelectorPath = (string | symbol)[];
+
+const resolvePathForSelector = <S, R = unknown>(state: S, selector: (state: S) => R) => {
+    console.log('resolvePathForSelector');
+    const path: SelectorPath = [];
+    const proxy = createPathResolvingProxy<S>(state, path);
+    selector(proxy);
+    return path;
 }
 
-const createConfigurator = <S, A extends TypedAction>(): Configurator<S, A> => {
+const reduceByPath = (state: any, path: (string | symbol)[], newValue: any): any => {
+    if (path.length === 0) {
+        return newValue;
+    }
+    const key = path.shift()!;
+    return {...state, [key]: reduceByPath(state[key], path, newValue)}
+}
 
-    const reducers: ReducerNode<S, A>[] = [];
-    let postActions: AsyncAction<any>[] = [];
+const createWrapper = <S, A extends TypedAction, R>(selector: (state: S) => R, reducer: Reducer<R, A>) => {
+    let path: SelectorPath;
+    return (state: S, action: A): S => {
+        let subState: R;
+        if (!path) {
+            path = resolvePathForSelector(state, selector);
+        }
+        subState = selector(state);
+        const newSubState = reducer(subState, action);
+        if (newSubState !== subState) {
+            return reduceByPath(state, [...path], newSubState);
+        }
+        return state;
+    }
+}
 
-    const addSimpleReducer = (reducer: ReducerNode<S, A>) => {
-        reducers.push(reducer);
+class Config<S, A extends TypedAction> implements Configurator<S, A> {
+
+    protected reducers: ReducerNode<S, A>[] = [];
+    protected postActions: AsyncAction<any>[] = [];
+
+    addCase(type: string, handler: any) {
+        this.reducers.push((s, a) => {
+            if (a.type === type) {
+                if (s && typeof s === 'object') {
+                    s = {...s};
+                    handler(s, a);
+                } else {
+                    return handler(s, a);
+                }
+            }
+            return s;
+        });
+        return this
     }
 
-    const addNestedReducer = <R = unknown>(selector: (state: S) => R, reducer: ReducerNode<R, A>) => {
+    private addNestedReducer = <R = unknown>(selector: (state: S) => R, reducer: ReducerNode<R, A>) => {
         reducer = combineReducers(reducer);
-        const wrapper = createWrapper(selector, reducer);
-        /*
-            What should createWrapper do?
-            - evaluate path for the selector
-            - create the reducer
-            What should the wrapper do?
-            - use selector to get current nested value
-            - deep copy state
-                - when reaching the path
-                    - send current nested value  through given reducer an use the result in the deep copy
-        */
-        reducers.push(wrapper);
+        this.reducers.push(createWrapper<S, A, R>(selector, reducer));
     }
 
-    const configurator: Configurator<S, A> = {
+    addReducer(...args: any) {
+        if (args.length === 2) {
+            this.addNestedReducer(args[0], args[1]);
+        } else {
+            this.reducers.push(args[0]);
+        }
+        return this;
+    }
 
-        addAsyncAction: (type, loader) => {
-            reducers.push((state, action) => {
-                if (action.type === type) {
-                    postActions.push((dispatch) => {
-                        dispatch({type: `${type}${asyncActionLoadingSuffix}`} as any);
-                        loader(action as any).then(data => {
-                            dispatch({type: `${type}${asyncActionDoneSuffix}`, data} as any);
-                        });
+    nested(selector: any, handler: any) {
+        const config = new Config<any, A>();
+        handler(config as any);
+        this.addNestedReducer(selector, config.reducers);
+        return this;
+    }
+
+    addAsyncAction(type: any, loader: any) {
+        this.reducers.push((state, action) => {
+            if (action.type === type) {
+                this.postActions.push((dispatch) => {
+                    dispatch({type: `${type}${asyncActionLoadingSuffix}`} as any);
+                    loader(action as any).then((data: any) => {
+                        dispatch({type: `${type}${asyncActionDoneSuffix}`, data} as any);
                     });
-                }
-                return state;
-            });
-            return configurator as any;
-        },
-
-        addCase: (type: any, handler: any) => {
-            // TODO
-            return configurator;
-        },
-
-        addReducer: (...args: any) => {
-            if (args.length === 2) {
-                addNestedReducer.apply(null, args);
-            } else {
-                addSimpleReducer.apply(null, args);
+                });
             }
-            return configurator;
-        },
-
-        nested: (selector, handler) => {
-            const nestedConfigurator = createNestedConfigurator();
-            handler(nestedConfigurator);
-            reducers.push((state, action) => {
-                const nestedState = selector(state);
-
-                return state;
-            });
-            return configurator;
-        },
-
-        create: (initialState: S): Store<S, A> => {
-            let state = initialState;
-            let isDispatching = false;
-            let subscribers: StoreSubscriber<S>[] = [];
-            const unsubscribe = (subscriber: StoreSubscriber<S>) => {
-                subscribers = subscribers.filter(sub => sub !== subscriber);
-            };
-            const reducer = combineReducers(reducers);
-            const dispatch = (action: A) => {
-                if (isDispatching) {
-                    throw Error('Dispatch inside reducer is not allowed!');
-                }
-                const previousState = state;
-                try {
-                    isDispatching = true;
-                    state = reducer(state, action);
-                } finally {
-                    isDispatching = false;
-                }
-                subscribers.forEach(subscriber => subscriber(previousState, state));
-                const actions = postActions;
-                postActions = [];
-                actions.forEach(action => action(dispatch));
-            }
-            return {
-                getState: () => state,
-                dispatch,
-                subscribe: (subscriber) => {
-                    unsubscribe(subscriber);
-                    subscribers.push(subscriber);
-                },
-                unsubscribe,
-            }
-        },
-
+            return state;
+        });
+        return this as any;
     }
-    return configurator;
+
+    create(initialState: S): Store<S, A> {
+        let state = initialState;
+        let isDispatching = false;
+        let subscribers: StoreSubscriber<S>[] = [];
+        const unsubscribe = (subscriber: StoreSubscriber<S>) => {
+            subscribers = subscribers.filter(sub => sub !== subscriber);
+        };
+        const reducer = combineReducers(this.reducers);
+        const dispatch = (action: A) => {
+            if (isDispatching) {
+                throw Error('Dispatch inside reducer is not allowed!');
+            }
+            const previousState = state;
+            try {
+                isDispatching = true;
+                state = reducer(state, action);
+            } finally {
+                isDispatching = false;
+            }
+            subscribers.forEach(subscriber => subscriber(previousState, state));
+            const actions = this.postActions;
+            this.postActions = [];
+            actions.forEach(action => action(dispatch));
+        }
+        return {
+            getState: () => state,
+            dispatch,
+            subscribe: (subscriber) => {
+                unsubscribe(subscriber);
+                subscribers.push(subscriber);
+            },
+            unsubscribe,
+        }
+    }
 }
 
 type ConfiguratorGlobal = {
@@ -172,5 +200,5 @@ type ConfiguratorGlobal = {
 }
 
 export const Configurator: ConfiguratorGlobal = {
-    store: <S, A extends TypedAction>() => createConfigurator<S, A>()
+    store: <S, A extends TypedAction>() => new Config<S, A>()
 };

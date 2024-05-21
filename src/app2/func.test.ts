@@ -54,7 +54,6 @@ describe('func', () => {
         return reduceByPath(state, path, () => subReducer(subState));
     }
 
-
     it.only('selector', () => {
         const state = {
             str0: 'ABC',

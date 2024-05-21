@@ -12,7 +12,7 @@
         "vitest": "^1.5.3"
     },
     "scripts": {
-        "build": "./node_modules/.bin/esbuild src/app/main.tsx src/app2/main.tsx --bundle --outdir=build",
+        "build": "./node_modules/.bin/esbuild src/app/main.tsx src/app2/main.tsx --bundle --outdir=build --outbase=src",
         "test": "vitest"
     }
 }

@@ -4,7 +4,7 @@ import {pause} from '../pause';
 import {ExtractAction} from '../store/ExtractAction';
 import {Configurator} from './Configurator';
 
-type BaseAction = {type: 'some-action'}
+type BaseAction = {type: 'some-action'} | {type: 'sub-reducer-action'}
 
 export type AppState = {
     userList: {
@@ -12,6 +12,9 @@ export type AppState = {
         loading: boolean,
         list: string[],
         wording: () => string,
+    },
+    data: {
+        s: string
     }
 }
 
@@ -21,6 +24,9 @@ const initialState: AppState = {
         list: [],
         loading: false,
         wording: () => 'test'
+    },
+    data: {
+        s: 'A'
     }
 }
 
@@ -54,6 +60,12 @@ export const store = Configurator
     .addCase('show-user-list', (s, a) => {
         return s;
     })
+
+    .addReducer((s, a) => {
+        console.log('a.type', a.type);
+        return s;
+    })
+
     // configurator for nested state
     .nested(
         // selector
@@ -73,11 +85,15 @@ export const store = Configurator
             }))
 
     // add a reducer for a nested state
-    .addReducer(s => s.userList, (s, a) => s)
+    .addReducer(s => s.data, (s, a) => {
+        switch (a.type) {
+            case 'sub-reducer-action':
+                return {...s, s: 'B'}
+        }
+        return s;
+    })
 
     .create(initialState);
-
-
 
 export const useAppDispatch = () => useDispatch<ExtractAction<typeof store>>();
 export const useAppState = useSelector.wrap<AppState>()
