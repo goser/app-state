@@ -2,14 +2,14 @@
     "license": "MIT",
     "type": "module",
     "devDependencies": {
-        "@testing-library/react": "^15.0.6",
-        "@types/react": "^18.3.1",
+        "@testing-library/react": "^15.0.7",
+        "@types/react": "^18.3.2",
         "@types/react-dom": "^18.3.0",
-        "esbuild": "^0.20.2",
+        "esbuild": "^0.21.3",
         "jsdom": "^24.0.0",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
-        "vitest": "^1.5.3"
+        "vitest": "^1.6.0"
     },
     "scripts": {
         "build": "./node_modules/.bin/esbuild src/app/main.tsx src/app2/main.tsx --bundle --outdir=build --outbase=src",

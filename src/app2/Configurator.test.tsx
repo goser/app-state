@@ -174,6 +174,23 @@ describe('Configurator', () => {
         await waitFor(() => expect(store.getState()).toStrictEqual({prop: 'C'}));
     });
 
-    it.skip('should allow optional loader params to action', () => { });
+    it('should map loader params to async action', async () => {
+        type S = {a: string | null, b: string, c: {name: string, age: number}}
+        type A = {type: 't'}
+        const initial = {a: 'a', b: 'b', c: {name: 'c', age: 0}}
+        const store = Configurator
+            .store<S, A>()
+            .addAsyncAction('a', async () => null)
+            .addCase('a.done', (s, a) => s.a = a.data)
+            .addAsyncAction('b', async (name: string) => name)
+            .addCase('b.done', (s, a) => s.b = a.data)
+            .addAsyncAction('c', async (name: string, age: number) => ({name, age}))
+            .addCase('c.done', (s, a) => s.c = a.data)
+            .create(initial);
+        expect(store.getState()).toStrictEqual(initial);
+        store.dispatch({type: 'a'});
+        store.dispatch({type: 'b', params: ['Heinz']});
+        await waitFor(() => expect(store.getState()).toStrictEqual({a: null, b: 'Heinz', c: {name: 'c', age: 0}}));
+    });
 
 });

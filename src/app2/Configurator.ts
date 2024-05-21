@@ -47,7 +47,7 @@ export interface Configurator<State, Action extends TypedAction> extends Parent<
         type: Exclude<Type, Action['type']>,
         promiseCreator: L
     ) => Configurator<State, Action
-        | (Parameters<L>['length'] extends 1 ? {type: Type, params: Parameters<L>} : {type: Type})
+        | (Parameters<L>['length'] extends 0 ? {type: Type} : {type: Type, params: Parameters<L>})
         | {type: `${Type}${AsyncActionDoneSuffix}`, data: Awaited<ReturnType<L>>}
         | {type: `${Type}${AsyncActionLoadingSuffix}`}>
 
@@ -146,7 +146,8 @@ class Config<S, A extends TypedAction> implements Configurator<S, A> {
             if (action.type === type) {
                 this.postActions.push((dispatch) => {
                     dispatch({type: `${type}${asyncActionLoadingSuffix}`} as any);
-                    loader(action as any).then((data: any) => {
+                    const params = (action as any).params || [];
+                    loader(...params).then((data: any) => {
                         dispatch({type: `${type}${asyncActionDoneSuffix}`, data} as any);
                     });
                 });
