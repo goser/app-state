@@ -152,6 +152,7 @@ describe('Configurator', () => {
         type S = {prop: string}
         type A = {type: 't'}
         const initial = {prop: 'A'}
+        const executedActions : string[] = [];
         const store = Configurator
             .store<S, A>()
             .addAsyncAction('ta', async () => {
@@ -159,7 +160,10 @@ describe('Configurator', () => {
                 return 'C'
             })
             .addReducer((s, a) => {
+                executedActions.push(a.type);
                 switch (a.type) {
+                    case 'ta':
+                        return s;
                     case 'ta.loading':
                         return {...s, prop: 'B'};
                     case 'ta.done':
@@ -172,6 +176,7 @@ describe('Configurator', () => {
         store.dispatch({type: 'ta'});
         expect(store.getState()).toStrictEqual({prop: 'B'});
         await waitFor(() => expect(store.getState()).toStrictEqual({prop: 'C'}));
+        expect(executedActions).toStrictEqual(['ta', 'ta.loading', 'ta.done']);
     });
 
     it('should map loader params to async action', async () => {
