@@ -1,5 +1,5 @@
 import {pause} from '../../pause';
-import {GetActionFromAsyncReducer, createAsyncReducer} from '../../store/configureStore'
+import {GetActionFromAsyncReducer, createAsyncReducer} from '../../store/old/configureStore'
 
 export const showUserListReducer = createAsyncReducer('show-user-list', async () => {
     await pause();

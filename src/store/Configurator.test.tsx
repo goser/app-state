@@ -102,7 +102,7 @@ describe('Configurator', () => {
         const initial = {prop: 'A'}
         const store = Configurator
             .store<S, A>()
-            .addCase('t', (s, a) => s.prop = 'B')
+            .addCase('t', (s, a) => ({...s, prop: 'B'}))
             .create(initial);
         expect(store.getState()).toStrictEqual({prop: 'A'});
         store.dispatch({type: 't'});
@@ -115,7 +115,7 @@ describe('Configurator', () => {
         const initial = {nested: {prop: 'A'}}
         const store = Configurator
             .store<S, A>()
-            .nested(s => s.nested, config => config.addCase('t', (s, a) => s.prop = 'B'))
+            .nested(s => s.nested, config => config.addCase('t', (s, a) => ({...s, prop: 'B'})))
             .create(initial);
         expect(store.getState()).toStrictEqual({nested: {prop: 'A'}});
         store.dispatch({type: 't'});
@@ -181,11 +181,11 @@ describe('Configurator', () => {
         const store = Configurator
             .store<S, A>()
             .addAsyncAction('a', async () => null)
-            .addCase('a.done', (s, a) => s.a = a.data)
+            .addCase('a.done', (s, a) => ({...s, a: a.data}))
             .addAsyncAction('b', async (name: string) => name)
-            .addCase('b.done', (s, a) => s.b = a.data)
+            .addCase('b.done', (s, a) => ({...s, b: a.data}))
             .addAsyncAction('c', async (name: string, age: number) => ({name, age}))
-            .addCase('c.done', (s, a) => s.c = a.data)
+            .addCase('c.done', (s, a) => ({...s, c: a.data}))
             .create(initial);
         expect(store.getState()).toStrictEqual(initial);
         store.dispatch({type: 'a'});

@@ -73,12 +73,9 @@ export const store = Configurator
         // nested state configuration
         config => config
             // single cases on nested state 'userList'
-            .addCase('show-user-list', (s, a) => s.show = true)
-            .addCase('show-user-list.loading', (s, a) => s.loading = true)
-            .addCase('show-user-list.done', (s, a) => {
-                s.loading = false;
-                s.list = a.data;
-            })
+            .addCase('show-user-list', (s, a) => ({...s, show: true}))
+            .addCase('show-user-list.loading', (s, a) => ({...s, loading: true}))
+            .addCase('show-user-list.done', (s, a) => ({...s, loading: false, list: a.data}))
             // simple reducer on nested state
             .addReducer((s, a) => {
                 return s;

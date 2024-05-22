@@ -1,6 +1,6 @@
 import {useDispatch} from '../hooks/useDispatch';
 import {useSelector} from '../hooks/useSelector';
-import {configureStore} from '../store/configureStore';
+import {configureStore} from '../store/old/configureStore';
 import {ShowUserListAction, showUserListReducer} from './action/ShowUserListAction';
 
 export type AppAction = ShowUserListAction

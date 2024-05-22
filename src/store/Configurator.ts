@@ -17,7 +17,7 @@ type AddReducer<State, Action extends TypedAction, Self> = {
 interface AddCase<State, Action extends TypedAction, Self> {
     <Type extends Action['type']>(
         type: Type,
-        handler: State extends object ? (state: State, action: Extract<Action, {type: Type}>) => void : Reducer<State, Extract<Action, {type: Type}>>
+        reducer: Reducer<State, Extract<Action, {type: Type}>>
     ): Self
 }
 
@@ -104,15 +104,10 @@ class Config<S, A extends TypedAction> implements Configurator<S, A> {
     protected reducers: ReducerNode<S, A>[] = [];
     protected postActions: AsyncAction<any>[] = [];
 
-    addCase(type: string, handler: any) {
+    addCase(type: string, reducer: Reducer<any, any>) {
         this.reducers.push((s, a) => {
             if (a.type === type) {
-                if (s && typeof s === 'object') {
-                    s = {...s};
-                    handler(s, a);
-                } else {
-                    return handler(s, a);
-                }
+                return reducer(s, a);
             }
             return s;
         });
