@@ -1,14 +1,13 @@
 import {act, render, renderHook, waitFor} from '@testing-library/react';
 import {Dispatch, FC, PropsWithChildren, useState} from 'react';
 import {describe, expect, expectTypeOf, it, test} from 'vitest';
-import {Store} from '../store/Store';
 import {StoreProvider} from './StoreContext';
 import {useDispatch} from './useDispatch';
 import {useSelector} from './useSelector';
 import {useStore} from './useStore';
 import {ReducerNode} from '../reducer/Reducer';
-import {Configurator} from '../store/Configurator';
 import {ExtractAction} from '../store/ExtractAction';
+import {Store} from '../store/Store';
 
 type AppStateUser = {
     name: string,
@@ -56,8 +55,8 @@ const appReducer: ReducerNode<AppState, AppAction> = {
     }
 };
 
-const createStore = () => Configurator
-    .store<AppState, AppAction>()
+const createStore = () => Store
+    .scope<AppState, AppAction>()
     .addReducer(appReducer)
     .addAsyncAction('showList', async () => Promise.resolve(['a', 'b', 'c']))
     .nested(s => s.listView, config => config
@@ -82,8 +81,8 @@ const wrapper: FC<PropsWithChildren> = ({children}) => {
 const selectUser = (state: AppState) => state.user;
 const selectData = (state: AppState) => state.data;
 
-const useAppSelector = useSelector.wrap<AppState>();
-const useAppDispatch = () => useDispatch<ExtractAction<typeof currentStore>>();
+const useAppSelector = useSelector.scope<AppState>();
+const useAppDispatch = useDispatch.scope<ExtractAction<typeof currentStore>>();
 
 describe('useStore', () => {
 
@@ -170,7 +169,7 @@ describe('useSelector', () => {
 describe('useDispatch', () => {
 
     it('should return the dispatch function of the current store', () => {
-        const {result} = renderHook(() => useDispatch<AppAction>(), {wrapper});
+        const {result} = renderHook(() => useAppDispatch(), {wrapper});
         expectTypeOf(result.current).toMatchTypeOf((action: AppAction) => { });
         expect(result.current).toStrictEqual(currentStore.dispatch);
     });
@@ -178,7 +177,7 @@ describe('useDispatch', () => {
     it('should trigger rerender for global state and changed substates', () => {
         let dispatch: Dispatch<AppAction>;
         const Comp0 = () => {
-            dispatch = useDispatch<AppAction>();
+            dispatch = useAppDispatch();
             return null;
         }
         let count1 = 0;

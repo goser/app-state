@@ -2,7 +2,7 @@ import {useDispatch} from '../hooks/useDispatch';
 import {useSelector} from '../hooks/useSelector';
 import {pause} from '../pause';
 import {ExtractAction} from '../store/ExtractAction';
-import {Configurator} from '../store/Configurator';
+import {Store} from '../store/Store';
 
 type BaseAction = {type: 'some-action'} | {type: 'sub-reducer-action'}
 
@@ -41,10 +41,10 @@ const loadUserList = async () => {
     ]
 }
 
-export const store = Configurator
+export const store = Store
 
     // create a scoped store configurator
-    .store<AppState, BaseAction>()
+    .scope<AppState, BaseAction>()
 
     // reducer on root
     .addReducer((s, a) => s)
@@ -92,5 +92,5 @@ export const store = Configurator
 
     .create(initialState);
 
-export const useAppDispatch = () => useDispatch<ExtractAction<typeof store>>();
-export const useAppState = useSelector.wrap<AppState>()
+export const useAppDispatch = useDispatch.scope<ExtractAction<typeof store>>();
+export const useAppState = useSelector.scope<AppState>()

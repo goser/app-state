@@ -7,7 +7,7 @@ export interface UseSelector<State = unknown> {
     <S extends State = State, R = unknown>(selector: (state: S) => R): R
     <S extends State = State, R = unknown>(): S
 
-    wrap: <S extends State>() => UseSelector<S>
+    scope: <S extends State>() => UseSelector<S>
 }
 
 const useSelectorIntern = <S, R>(selector?: (state: S) => R) => {
@@ -36,7 +36,7 @@ const useSelectorIntern = <S, R>(selector?: (state: S) => R) => {
 }
 
 Object.assign(useSelectorIntern, {
-    wrap: () => useSelectorIntern
+    scope: () => useSelectorIntern
 });
 
 export const useSelector = useSelectorIntern as UseSelector;

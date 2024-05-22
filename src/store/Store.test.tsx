@@ -1,16 +1,16 @@
 import {waitFor} from '@testing-library/react';
-import {describe, expect, it} from 'vitest';
+import {beforeAll, describe, expect, it, vi} from 'vitest';
 import {pause} from '../pause';
-import {Configurator} from './Configurator';
+import {Store} from './Store';
 
-describe('Configurator', () => {
+describe('Store', () => {
 
     it('should support simple root reducers', () => {
         type S = {prop: string}
         type A = {type: 't'}
         const initial = {prop: 'A'}
-        const store = Configurator
-            .store<S, A>()
+        const store = Store
+            .scope<S, A>()
             .addReducer((s, a) => a.type === 't' ? {...s, prop: 'B'} : s)
             .create(initial);
         expect(store.getState()).toStrictEqual({prop: 'A'});
@@ -22,8 +22,8 @@ describe('Configurator', () => {
         type S = {nested: {prop: string}}
         type A = {type: 't'}
         const initial = {nested: {prop: 'A'}}
-        const store = Configurator
-            .store<S, A>()
+        const store = Store
+            .scope<S, A>()
             .addReducer(s => s.nested, (s, a) => a.type === 't' ? {...s, prop: 'B'} : s)
             .create(initial);
         expect(store.getState()).toStrictEqual({nested: {prop: 'A'}});
@@ -35,8 +35,8 @@ describe('Configurator', () => {
         type S = {deep: {nested: {prop: string}}}
         type A = {type: 't'}
         const initial = {deep: {nested: {prop: 'A'}}}
-        const store = Configurator
-            .store<S, A>()
+        const store = Store
+            .scope<S, A>()
             .addReducer(s => s.deep.nested, (s, a) => a.type === 't' ? {...s, prop: 'B'} : s)
             .create(initial);
         expect(store.getState()).toStrictEqual({deep: {nested: {prop: 'A'}}});
@@ -48,8 +48,8 @@ describe('Configurator', () => {
         type S = {nested: {prop: string}}
         type A = {type: 't'}
         const initial = {nested: {prop: 'A'}}
-        const store = Configurator
-            .store<S, A>()
+        const store = Store
+            .scope<S, A>()
             .nested(s => s.nested, config => config.addReducer((s, a) => a.type === 't' ? {...s, prop: 'B'} : s))
             .create(initial);
         expect(store.getState()).toStrictEqual({nested: {prop: 'A'}});
@@ -61,8 +61,8 @@ describe('Configurator', () => {
         type S = {deep: {nested: {prop: string}}}
         type A = {type: 't'}
         const initial = {deep: {nested: {prop: 'A'}}}
-        const store = Configurator
-            .store<S, A>()
+        const store = Store
+            .scope<S, A>()
             .nested(s => s.deep.nested, config => config.addReducer((s, a) => a.type === 't' ? {...s, prop: 'B'} : s))
             .create(initial);
         expect(store.getState()).toStrictEqual({deep: {nested: {prop: 'A'}}});
@@ -74,8 +74,8 @@ describe('Configurator', () => {
         type S = {deep: {nested: {prop: string}}}
         type A = {type: 't'}
         const initial = {deep: {nested: {prop: 'A'}}}
-        const store = Configurator
-            .store<S, A>()
+        const store = Store
+            .scope<S, A>()
             .nested(s => s.deep, config => config.nested(s => s.nested, config => config.addReducer((s, a) => a.type === 't' ? {...s, prop: 'B'} : s)))
             .create(initial);
         expect(store.getState()).toStrictEqual({deep: {nested: {prop: 'A'}}});
@@ -87,8 +87,8 @@ describe('Configurator', () => {
         type S = {prop: string}
         type A = {type: 't'}
         const initial = {prop: 'A'}
-        const store = Configurator
-            .store<S, A>()
+        const store = Store
+            .scope<S, A>()
             .nested(s => s.prop, config => config.addReducer((s, a) => a.type === 't' ? 'B' : s))
             .create(initial);
         expect(store.getState()).toStrictEqual({prop: 'A'});
@@ -100,8 +100,8 @@ describe('Configurator', () => {
         type S = {prop: string}
         type A = {type: 't'}
         const initial = {prop: 'A'}
-        const store = Configurator
-            .store<S, A>()
+        const store = Store
+            .scope<S, A>()
             .addCase('t', (s, a) => ({...s, prop: 'B'}))
             .create(initial);
         expect(store.getState()).toStrictEqual({prop: 'A'});
@@ -113,8 +113,8 @@ describe('Configurator', () => {
         type S = {nested: {prop: string}}
         type A = {type: 't'}
         const initial = {nested: {prop: 'A'}}
-        const store = Configurator
-            .store<S, A>()
+        const store = Store
+            .scope<S, A>()
             .nested(s => s.nested, config => config.addCase('t', (s, a) => ({...s, prop: 'B'})))
             .create(initial);
         expect(store.getState()).toStrictEqual({nested: {prop: 'A'}});
@@ -126,8 +126,8 @@ describe('Configurator', () => {
         type S = string;
         type A = {type: 't'}
         const initial = 'A'
-        const store = Configurator
-            .store<S, A>()
+        const store = Store
+            .scope<S, A>()
             .addCase('t', () => 'B')
             .create(initial);
         expect(store.getState()).toStrictEqual('A');
@@ -139,8 +139,8 @@ describe('Configurator', () => {
         type S = {nested: {prop: string}}
         type A = {type: 't'}
         const initial = {nested: {prop: 'A'}}
-        const store = Configurator
-            .store<S, A>()
+        const store = Store
+            .scope<S, A>()
             .nested(s => s.nested.prop, config => config.addCase('t', () => 'B'))
             .create(initial);
         expect(store.getState()).toStrictEqual({nested: {prop: 'A'}});
@@ -152,9 +152,9 @@ describe('Configurator', () => {
         type S = {prop: string}
         type A = {type: 't'}
         const initial = {prop: 'A'}
-        const executedActions : string[] = [];
-        const store = Configurator
-            .store<S, A>()
+        const executedActions: string[] = [];
+        const store = Store
+            .scope<S, A>()
             .addAsyncAction('ta', async () => {
                 await pause(100);
                 return 'C'
@@ -183,8 +183,8 @@ describe('Configurator', () => {
         type S = {a: string | null, b: string, c: {name: string, age: number}}
         type A = {type: 't'}
         const initial = {a: 'a', b: 'b', c: {name: 'c', age: 0}}
-        const store = Configurator
-            .store<S, A>()
+        const store = Store
+            .scope<S, A>()
             .addAsyncAction('a', async () => null)
             .addCase('a.done', (s, a) => ({...s, a: a.data}))
             .addAsyncAction('b', async (name: string) => name)
@@ -196,6 +196,56 @@ describe('Configurator', () => {
         store.dispatch({type: 'a'});
         store.dispatch({type: 'b', params: ['Heinz']});
         await waitFor(() => expect(store.getState()).toStrictEqual({a: null, b: 'Heinz', c: {name: 'c', age: 0}}));
+    });
+
+    it('should throw if dispatch is called in reducer', () => {
+        type A = {type: 'DO'}
+        type S = {m: number}
+        const {dispatch} = Store.scope<S, A>().addReducer((s, a) => {
+            dispatch({type: 'DO'});
+            return s;
+        }).create({
+            m: 1
+        });
+        expect(() => dispatch({type: 'DO'})).toThrow('Dispatch inside reducer is not allowed!');
+    });
+
+    describe('subscribe', () => {
+        let store: Store<{}, any>
+
+        beforeAll(() => {
+            store = Store.scope<{}, any>().addReducer((s, a) => s).create({})
+        });
+
+        it('should call subscriber when dispatch was done', () => {
+            const subscriber = vi.fn();
+            store.subscribe(subscriber);
+            store.dispatch(1);
+            expect(subscriber).toBeCalledTimes(1);
+            store.dispatch(1);
+            expect(subscriber).toBeCalledTimes(2);
+        });
+
+        it('should don\'t call unsubscribed subscriber', () => {
+            const subscriber = vi.fn();
+            store.subscribe(subscriber);
+            store.dispatch(1);
+            expect(subscriber).toBeCalledTimes(1);
+            store.unsubscribe(subscriber);
+            store.dispatch(1);
+            expect(subscriber).toBeCalledTimes(1);
+        });
+
+        it('should allow each subscriber only once', () => {
+            const subscriber = vi.fn();
+            store.subscribe(subscriber);
+            store.subscribe(subscriber);
+            store.dispatch(1);
+            expect(subscriber).toBeCalledTimes(1);
+            store.subscribe(subscriber);
+            store.dispatch(1);
+            expect(subscriber).toBeCalledTimes(2);
+        });
     });
 
 });

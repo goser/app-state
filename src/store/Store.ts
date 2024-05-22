@@ -2,7 +2,6 @@ import {combineReducers} from '../combineReducers';
 import {Reducer, ReducerNode} from '../reducer/Reducer';
 import {AsyncAction, AsyncActionDoneSuffix, AsyncActionLoadingSuffix, asyncActionDoneSuffix, asyncActionLoadingSuffix} from './AsyncAction';
 import {Loader} from './Loader';
-import {Store} from './Store';
 import {StoreSubscriber} from './StoreSubscriber';
 import {TypedAction} from './TypedAction';
 
@@ -187,10 +186,17 @@ class Config<S, A extends TypedAction> implements Configurator<S, A> {
     }
 }
 
-type ConfiguratorGlobal = {
-    store: <S, A extends TypedAction>() => Configurator<S, A>
+type StoreConfigRoot = {
+    scope: <S, A extends TypedAction>() => Configurator<S, A>
 }
 
-export const Configurator: ConfiguratorGlobal = {
-    store: <S, A extends TypedAction>() => new Config<S, A>()
+export const Store: StoreConfigRoot = {
+    scope: <S, A extends TypedAction>() => new Config<S, A>()
 };
+
+export type Store<S = any, A = any> = {
+    getState: () => S
+    dispatch: (action: A) => void
+    subscribe: (subscriber: StoreSubscriber<S>) => void
+    unsubscribe: (subscriber: StoreSubscriber<S>) => void
+}

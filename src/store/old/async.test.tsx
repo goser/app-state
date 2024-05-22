@@ -1,14 +1,14 @@
 import {act, cleanup, render, waitFor} from '@testing-library/react';
 import {FC} from 'react';
 import {afterEach, beforeEach, describe, expect, it} from 'vitest';
-import {GetActionFromAsyncReducer, configureStore, createAsyncReducer, createAsyncReducerObject} from './configureStore';
-import {createAsyncReducerFactory} from './createAsyncReducerFactory';
-import {createStoreConfigurator} from './createStoreConfigurator';
 import {StoreProvider} from '../../hooks/StoreContext';
 import {useStore} from '../../hooks/useStore';
 import {pause} from '../../pause';
-import {Configurator} from '../Configurator';
 import {ExtractAction} from '../ExtractAction';
+import {Store} from '../Store';
+import {GetActionFromAsyncReducer, configureStore, createAsyncReducer, createAsyncReducerObject} from './configureStore';
+import {createAsyncReducerFactory} from './createAsyncReducerFactory';
+import {createStoreConfigurator} from './createStoreConfigurator';
 
 describe('async', () => {
 
@@ -169,8 +169,8 @@ describe('async', () => {
         it('variant 4', async () => {
             type Action = {type: 'something'}
 
-            store = Configurator
-                .store<State, Action>()
+            store = Store
+                .scope<State, Action>()
                 .addAsyncAction('getData', async () => {
                     await pause(50);
                     return 'JO DATA';
