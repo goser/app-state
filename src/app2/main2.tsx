@@ -1,5 +1,5 @@
 import {createRoot} from 'react-dom/client';
-import {App} from './App';
+import {App2} from './App2';
 import {StoreProvider} from '../hooks/StoreContext';
 import {store} from './store';
 
@@ -8,5 +8,5 @@ document.body.append(rootElement);
 const root = createRoot(rootElement);
 
 root.render(<StoreProvider store={store}>
-    <App />
+    <App2 />
 </StoreProvider>);

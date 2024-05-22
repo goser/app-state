@@ -2,7 +2,7 @@ import {FC} from 'react';
 import {UserListView} from './UserListView';
 import {useAppDispatch, useAppState} from './store';
 
-export const App: FC = () => {
+export const App2: FC = () => {
     const dispatch = useAppDispatch();
     const {data} = useAppState();
     return <div>
