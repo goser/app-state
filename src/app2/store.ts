@@ -2,7 +2,7 @@ import {useDispatch} from '../hooks/useDispatch';
 import {useSelector} from '../hooks/useSelector';
 import {pause} from '../pause';
 import {ExtractAction} from '../store/ExtractAction';
-import {Configurator} from './Configurator';
+import {Configurator} from '../store/Configurator';
 
 type BaseAction = {type: 'some-action'} | {type: 'sub-reducer-action'}
 

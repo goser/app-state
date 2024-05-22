@@ -2,12 +2,12 @@ import {act, render, renderHook, waitFor} from '@testing-library/react';
 import {Dispatch, FC, PropsWithChildren, useState} from 'react';
 import {describe, expect, expectTypeOf, it} from 'vitest';
 import {Store} from '../store/Store';
-import {configureStore} from '../store/configureStore';
 import {StoreProvider} from './StoreContext';
 import {useDispatch} from './useDispatch';
 import {useSelector} from './useSelector';
 import {useStore} from './useStore';
 import {ReducerNode} from '../reducer/Reducer';
+import {Configurator} from '../store/Configurator';
 
 type AppStateUser = {
     name: string,
@@ -48,10 +48,12 @@ const appReducer: ReducerNode<AppState, AppAction> = {
 let currentStore: Store<AppState, AppAction>;
 
 const wrapper: FC<PropsWithChildren> = ({children}) => {
-    const [store] = useState(() => configureStore<AppState, AppAction>({
-        reducer: appReducer,
-        initialState,
-    }));
+    const [store] = useState(
+        () => Configurator
+            .store<AppState, AppAction>()
+            .addReducer(appReducer)
+            .create(initialState)
+    );
     currentStore = store;
     return <StoreProvider store={store}>
         {children}

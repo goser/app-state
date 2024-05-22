@@ -1,20 +1,17 @@
 import {beforeAll, describe, expect, it, vi} from 'vitest';
 import {Store} from './Store';
-import {configureStore} from './configureStore';
+import {Configurator} from './Configurator';
 
 describe('store', () => {
 
     it('should throw if dispatch is called in reducer', () => {
         type A = {type: 'DO'}
         type S = {m: number}
-        const {dispatch} = configureStore<S, A>({
-            reducer: (s, a) => {
-                dispatch({type: 'DO'});
-                return s;
-            },
-            initialState: {
-                m: 1
-            }
+        const {dispatch} = Configurator.store<S, A>().addReducer((s, a) => {
+            dispatch({type: 'DO'});
+            return s;
+        }).create({
+            m: 1
         });
         expect(() => dispatch({type: 'DO'})).toThrow('Dispatch inside reducer is not allowed!');
     });
@@ -22,10 +19,7 @@ describe('store', () => {
     describe('subscribe', () => {
         let store: Store<{}, any>
         beforeAll(() => {
-            store = configureStore({
-                reducer: (s, a) => s,
-                initialState: {}
-            });
+            store = Configurator.store<{}, any>().addReducer((s, a) => s).create({})
         });
         it('should call subscriber when dispatch was done', () => {
             const subscriber = vi.fn();

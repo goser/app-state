@@ -1,6 +1,6 @@
-import {Reducer} from '../reducer/Reducer';
-import {AsyncActionDoneSuffix, AsyncActionLoadingSuffix, asyncActionDoneSuffix, asyncActionLoadingSuffix} from './AsyncAction';
-import {TypedAction} from './TypedAction';
+import {Reducer} from '../../reducer/Reducer';
+import {AsyncActionDoneSuffix, AsyncActionLoadingSuffix, asyncActionDoneSuffix, asyncActionLoadingSuffix} from '../AsyncAction';
+import {TypedAction} from '../TypedAction';
 import {asyncActions} from './configureStore';
 
 export type AddAsyncActions<A extends TypedAction, Type extends string, Data> = A

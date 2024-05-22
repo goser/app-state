@@ -1,8 +1,9 @@
-import {Reducer, ReducerNode} from '../reducer/Reducer';
-import {combineReducers} from '../reducer/combineReducers';
-import {AsyncAction, AsyncActionDoneSuffix, AsyncActionLoadingSuffix, asyncActionDoneSuffix, asyncActionLoadingSuffix} from './AsyncAction';
-import {Store, StoreSubscriber} from './Store';
-import {TypedAction} from './TypedAction';
+import {Reducer, ReducerNode} from '../../reducer/Reducer';
+import {combineReducers} from '../../reducer/combineReducers';
+import {AsyncAction, AsyncActionDoneSuffix, AsyncActionLoadingSuffix, asyncActionDoneSuffix, asyncActionLoadingSuffix} from '../AsyncAction';
+import {Store} from '../Store';
+import {StoreSubscriber} from '../StoreSubscriber';
+import {TypedAction} from '../TypedAction';
 
 type AsyncStateReducer = ((...args: any) => Promise<any>) & {type: string, loader: (...args: any) => Promise<any>}
 

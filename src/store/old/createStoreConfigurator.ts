@@ -1,9 +1,10 @@
-import {ReducerNode} from '../reducer/Reducer';
-import {combineReducers} from '../reducer/combineReducers';
-import {AsyncAction, AsyncActionDoneSuffix, AsyncActionLoadingSuffix, asyncActionDoneSuffix, asyncActionLoadingSuffix} from './AsyncAction';
-import {Loader} from './Loader';
-import {Store, StoreSubscriber} from './Store';
-import {TypedAction} from './TypedAction';
+import {ReducerNode} from '../../reducer/Reducer';
+import {combineReducers} from '../../reducer/combineReducers';
+import {AsyncAction, AsyncActionDoneSuffix, AsyncActionLoadingSuffix, asyncActionDoneSuffix, asyncActionLoadingSuffix} from '../AsyncAction';
+import {Loader} from '../Loader';
+import {Store} from '../Store';
+import {StoreSubscriber} from '../StoreSubscriber';
+import {TypedAction} from '../TypedAction';
 
 type LoaderMap<A extends TypedAction> = {
     [K in A['type']]?: (...args: any) => Promise<any>

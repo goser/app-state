@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {combineReducers} from './combineReducers';
 
-describe.only('combineReducers', () => {
+describe('combineReducers', () => {
 
     it('should allow to combine multiple reducer methods', () => {
         type Action = 'upper_case' | 'lower_case' | 'wave_case';

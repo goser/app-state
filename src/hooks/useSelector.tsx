@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
 import {useStoreContext} from './StoreContext';
-import {StoreSubscriber} from '../store/Store';
+import {StoreSubscriber} from '../store/StoreSubscriber';
 
 export interface UseSelector<State = unknown> {
 

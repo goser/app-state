@@ -1,17 +1,16 @@
 import {combineReducers} from '../combineReducers';
 import {Reducer, ReducerNode} from '../reducer/Reducer';
-import {AsyncAction, AsyncActionDoneSuffix, AsyncActionLoadingSuffix, asyncActionDoneSuffix, asyncActionLoadingSuffix} from '../store/AsyncAction';
-import {Loader} from '../store/Loader';
-import {Store, StoreSubscriber} from '../store/Store';
-import {TypedAction} from '../store/TypedAction';
+import {AsyncAction, AsyncActionDoneSuffix, AsyncActionLoadingSuffix, asyncActionDoneSuffix, asyncActionLoadingSuffix} from './AsyncAction';
+import {Loader} from './Loader';
+import {Store} from './Store';
+import {StoreSubscriber} from './StoreSubscriber';
+import {TypedAction} from './TypedAction';
 
 type AddReducer<State, Action extends TypedAction, Self> = {
-
     <S extends State, R = unknown>(
         selector: (state: S) => R,
         reducer: ReducerNode<R, Action>
     ): Self
-
     (reducer: ReducerNode<State, Action>): Self
 }
 

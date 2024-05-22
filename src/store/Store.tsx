@@ -1,4 +1,4 @@
-export type StoreSubscriber<S> = (previousState: S, currentState: S) => void
+import {StoreSubscriber} from './StoreSubscriber'
 
 export type Store<S = any, A = any> = {
     getState: () => S

@@ -1,12 +1,14 @@
 import {act, cleanup, render, waitFor} from '@testing-library/react';
 import {FC} from 'react';
 import {afterEach, beforeEach, describe, expect, it} from 'vitest';
-import {GetActionFromAsyncReducer, configureStore, createAsyncReducer, createAsyncReducerObject} from '../store/configureStore';
-import {createAsyncReducerFactory} from '../store/createAsyncReducerFactory';
-import {createStoreConfigurator} from '../store/createStoreConfigurator';
-import {StoreProvider} from './StoreContext';
-import {useStore} from './useStore';
-import {pause} from '../pause';
+import {GetActionFromAsyncReducer, configureStore, createAsyncReducer, createAsyncReducerObject} from './configureStore';
+import {createAsyncReducerFactory} from './createAsyncReducerFactory';
+import {createStoreConfigurator} from './createStoreConfigurator';
+import {StoreProvider} from '../../hooks/StoreContext';
+import {useStore} from '../../hooks/useStore';
+import {pause} from '../../pause';
+import {Configurator} from '../Configurator';
+import {ExtractAction} from '../ExtractAction';
 
 describe('async', () => {
 
@@ -161,6 +163,33 @@ describe('async', () => {
             Comp = () => {
                 const {state, dispatch} = useStore<State, Action>();
                 return <RenderComp state={state} onClick={() => dispatch({type: 'getData', query: 'query me this', id: 1})} />;
+            }
+        });
+
+        it('variant 4', async () => {
+            type Action = {type: 'something'}
+
+            store = Configurator
+                .store<State, Action>()
+                .addAsyncAction('getData', async () => {
+                    await pause(50);
+                    return 'JO DATA';
+                })
+                .addReducer((s, a) => {
+                    switch (a.type) {
+                        case 'getData.loading':
+                            return {...s, loading: true};
+                        case 'getData.done':
+                            return ({...s, loading: false, data: a.data});
+                    }
+                    return s;
+                })
+                .create(initialState);
+            type WithAsyncAction = ExtractAction<typeof store>
+
+            Comp = () => {
+                const {state, dispatch} = useStore<State, WithAsyncAction>();
+                return <RenderComp state={state} onClick={() => dispatch({type: 'getData'})} />;
             }
         });
 
