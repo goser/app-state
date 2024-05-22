@@ -1,6 +1,6 @@
 import {act, render, renderHook, waitFor} from '@testing-library/react';
 import {Dispatch, FC, PropsWithChildren, useState} from 'react';
-import {describe, expect, expectTypeOf, it} from 'vitest';
+import {describe, expect, expectTypeOf, it, test} from 'vitest';
 import {Store} from '../store/Store';
 import {StoreProvider} from './StoreContext';
 import {useDispatch} from './useDispatch';
@@ -8,6 +8,7 @@ import {useSelector} from './useSelector';
 import {useStore} from './useStore';
 import {ReducerNode} from '../reducer/Reducer';
 import {Configurator} from '../store/Configurator';
+import {ExtractAction} from '../store/ExtractAction';
 
 type AppStateUser = {
     name: string,
@@ -22,6 +23,11 @@ type AppState = {
     mode: string
     user: AppStateUser
     data: AppStateData
+    listView: {
+        show: boolean
+        loading: boolean
+        list: string[] | null
+    }
 };
 
 type AppAction = {type: 'party'};
@@ -31,6 +37,11 @@ const initialState: AppState = {
     user: {name: 'Hans', age: 35},
     data: {
         a: 1
+    },
+    listView: {
+        show: false,
+        loading: false,
+        list: null,
     }
 };
 
@@ -45,15 +56,23 @@ const appReducer: ReducerNode<AppState, AppAction> = {
     }
 };
 
-let currentStore: Store<AppState, AppAction>;
+const createStore = () => Configurator
+    .store<AppState, AppAction>()
+    .addReducer(appReducer)
+    .addAsyncAction('showList', async () => Promise.resolve(['a', 'b', 'c']))
+    .nested(s => s.listView, config => config
+        .addCase('showList', (s, a) => ({...s, show: true}))
+        .addCase('showList.loading', (s, a) => ({...s, loading: true}))
+        .addCase('showList.done', (s, a) => ({...s, loading: false, list: a.data}))
+        // TODO error case
+    )
+    .create(initialState);
+
+// just a workaround to get the correct typing for useAppDispatch
+let currentStore = createStore();
 
 const wrapper: FC<PropsWithChildren> = ({children}) => {
-    const [store] = useState(
-        () => Configurator
-            .store<AppState, AppAction>()
-            .addReducer(appReducer)
-            .create(initialState)
-    );
+    const [store] = useState(createStore);
     currentStore = store;
     return <StoreProvider store={store}>
         {children}
@@ -62,6 +81,9 @@ const wrapper: FC<PropsWithChildren> = ({children}) => {
 
 const selectUser = (state: AppState) => state.user;
 const selectData = (state: AppState) => state.data;
+
+const useAppSelector = useSelector.wrap<AppState>();
+const useAppDispatch = () => useDispatch<ExtractAction<typeof currentStore>>();
 
 describe('useStore', () => {
 
@@ -94,12 +116,12 @@ describe('useStore', () => {
 describe('useSelector', () => {
 
     it('should return initial state', () => {
-        const {result} = renderHook(() => useSelector<AppState>(), {wrapper});
+        const {result} = renderHook(() => useAppSelector(), {wrapper});
         expect(result.current).toStrictEqual(initialState);
     });
 
     it('should return updated state after dispatch', () => {
-        const {result} = renderHook(() => useSelector<AppState>(), {wrapper});
+        const {result} = renderHook(() => useAppSelector(), {wrapper});
         act(() => currentStore.dispatch({type: 'party'}));
         expect(result.current).toStrictEqual(afterPartyState);
     });
@@ -107,7 +129,7 @@ describe('useSelector', () => {
     it('should trigger rerender on dispatch', () => {
         let count = 0;
         const Comp = () => {
-            useSelector();
+            useAppSelector();
             count++;
             return null;
         }
@@ -118,20 +140,20 @@ describe('useSelector', () => {
     });
 
     it('should allow to select a substate', async () => {
-        const {result} = renderHook(() => useSelector((s: AppState) => s.data), {wrapper});
+        const {result} = renderHook(() => useAppSelector(s => s.data), {wrapper});
         await waitFor(() => expect(result.current).toStrictEqual(initialState.data));
     });
 
     it('should not trigger rerender when another substate was changed by dispatch', () => {
         let userRenderCount = 0;
         const UserComp = () => {
-            useSelector(selectUser);
+            useAppSelector(selectUser);
             userRenderCount++;
             return null;
         };
         let dataRenderCount = 0;
         const DataComp = () => {
-            useSelector(selectData);
+            useAppSelector(selectData);
             dataRenderCount++;
             return null;
         };
@@ -167,13 +189,13 @@ describe('useDispatch', () => {
         }
         let count2 = 0;
         const Comp2 = () => {
-            useSelector((s: AppState) => s.user);
+            useAppSelector((s) => s.user);
             count2++;
             return null;
         }
         let count3 = 0;
         const Comp3 = () => {
-            useSelector((s: AppState) => s.data);
+            useAppSelector((s) => s.data);
             count3++;
             return null;
         }
@@ -185,8 +207,44 @@ describe('useDispatch', () => {
         expect(count1).toBe(2);
         expect(count2).toBe(2);
         expect(count3).toBe(1);
-
-
     });
 
+});
+
+test('combined usage of hooks and async action', async () => {
+    const List = () => {
+        const list = useAppSelector(s => s.listView.list);
+        return <div data-testid='list'>
+            {list ? list.map(entry => <div data-testid='list-entry' key={entry}>{entry}</div>) : 'EMPTY'}
+        </div>
+    }
+    const Loading = () => {
+        const loading = useAppSelector(s => s.listView.loading);
+        return <div data-testid='loading'>{loading ? 'loading' : 'idle'}</div>
+    }
+    const LoadButton = () => {
+        const dispatch = useAppDispatch();
+        return <button onClick={() => dispatch({type: 'showList'})} data-testid='load-button'>Load list</button>
+    }
+    const ListView = () => {
+        const show = useAppSelector(s => s.listView.show);
+        return <div>
+            {show ? <div>LIST VIEW VISIBLE</div> : <div>LIST VIEW NOT VISIBLE</div>}
+            <List />
+            <Loading />
+            <LoadButton />
+        </div>
+    }
+    const result = render(<ListView />, {wrapper});
+    expect(result.queryByText('LIST VIEW NOT VISIBLE')).not.toBeNull();
+    expect(result.queryByTestId('list')?.textContent).toBe('EMPTY');
+    expect(result.queryByTestId('loading')?.textContent).toBe('idle');
+    act(() => result.queryByTestId('load-button')?.click());
+    expect(result.queryByText('LIST VIEW VISIBLE')).not.toBeNull();
+    expect(result.queryByTestId('loading')?.textContent).toBe('loading');
+    expect(result.queryByTestId('list')?.textContent).toBe('EMPTY');
+    await waitFor(() => {
+        expect(result.queryByTestId('loading')?.textContent).toBe('idle');
+        expect(result.queryByTestId('list')?.textContent).toBe('abc');
+    });
 });
