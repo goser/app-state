@@ -1,5 +1,5 @@
 import {createRoot} from 'react-dom/client';
-import {App2} from './App2';
+import {App2} from './App';
 import {StoreProvider} from '../hooks/StoreContext';
 import {store} from './store';
 

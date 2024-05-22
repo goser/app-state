@@ -7,8 +7,10 @@ export const App2: FC = () => {
     const {data} = useAppState();
     return <div>
         <UserListView />
-        <div>{data.s}</div>
         <button onClick={() => dispatch({type: 'show-user-list'})}>Userlist</button>
+        <hr />
+        <div>{data.s}</div>
         <button onClick={() => dispatch({type: 'sub-reducer-action'})}>sub-reducer-action</button>
+        <hr />
     </div>;
 }
