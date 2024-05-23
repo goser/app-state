@@ -1,8 +1,10 @@
 import {useDispatch} from '../hooks/useDispatch';
 import {useSelector} from '../hooks/useSelector';
-import {pause} from '../pause';
 import {ExtractAction} from '../store/ExtractAction';
 import {Store} from '../store/Store';
+
+// helper
+export const pause = (timeout = 1000) => new Promise<void>(resolve => setTimeout(() => resolve(), timeout));
 
 type BaseAction = {type: 'some-action'} | {type: 'sub-reducer-action'}
 
