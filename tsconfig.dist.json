@@ -1,23 +1,11 @@
 {
+    "extends": "./tsconfig.json",
     "compilerOptions": {
-        "strict": true,
-        "target": "es5",
-        "module": "ESNext",
-        "moduleResolution": "node",
-        "jsx": "react-jsx",
         "outDir": "dist",
         "skipLibCheck": true,
-        "declaration": true,
-        "lib": [
-            "DOM",
-            "DOM.Iterable",
-            "ESNext",
-        ]
+        "declaration": true
     },
-    "include": [
-        "src/**/*"
+    "files": [
+        "src/index.tsx"
     ],
-    "exclude": [
-        "src/testApp/**/*.*"
-    ]
 }
