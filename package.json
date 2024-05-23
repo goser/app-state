@@ -1,18 +1,23 @@
 {
+    "name": "@goser/app-state",
+    "version": "1.0.0",
     "license": "MIT",
-    "type": "module",
+    "private": true,
     "devDependencies": {
         "@testing-library/react": "^15.0.7",
         "@types/react": "^18.3.2",
         "@types/react-dom": "^18.3.0",
         "esbuild": "^0.21.3",
         "jsdom": "^24.0.0",
-        "react": "^18.3.1",
-        "react-dom": "^18.3.1",
+        "typescript": "^5.4.5",
         "vitest": "^1.6.0"
     },
+    "peerDependencies": {
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1"
+    },
     "scripts": {
-        "build": "./node_modules/.bin/esbuild src/testApp/main.tsx --bundle --outdir=build",
+        "build": "./node_modules/.bin/tsc --project tsconfig.dist.json",
         "test": "vitest"
     }
 }

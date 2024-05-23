@@ -1,4 +1,4 @@
-import {combineReducers} from '../combineReducers';
+import {combineReducers} from '../reducer/combineReducers';
 import {Reducer, ReducerNode} from '../reducer/Reducer';
 import {AsyncAction, AsyncActionDoneSuffix, AsyncActionLoadingSuffix, asyncActionDoneSuffix, asyncActionLoadingSuffix} from './AsyncAction';
 import {Loader} from './Loader';

@@ -1,6 +1,6 @@
 import {waitFor} from '@testing-library/react';
 import {beforeAll, describe, expect, it, vi} from 'vitest';
-import {Store} from './Store';
+import {Store} from '../src/store/Store';
 
 // helper
 export const pause = (timeout = 1000) => new Promise<void>(resolve => setTimeout(() => resolve(), timeout));

@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {combineReducers} from './combineReducers';
+import {combineReducers} from '../src/reducer/combineReducers';
 
 describe('combineReducers', () => {
 
