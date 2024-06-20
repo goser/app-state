@@ -9,14 +9,14 @@ var __assign = (this && this.__assign) || function () {
     };
     return __assign.apply(this, arguments);
 };
-var reduce = function (state, action, reducer) {
+var reduce = function (state, action, reducer, root) {
     if (typeof reducer === 'function') {
-        return reducer(state, action);
+        return reducer(state, action, root);
     }
     else if (Array.isArray(reducer)) {
         for (var _i = 0, reducer_1 = reducer; _i < reducer_1.length; _i++) {
             var subReducer = reducer_1[_i];
-            state = reduce(state, action, subReducer);
+            state = reduce(state, action, subReducer, root);
         }
         return state;
     }
@@ -25,7 +25,7 @@ var reduce = function (state, action, reducer) {
         var hasChanges = false;
         for (var _a = 0, _b = Object.keys(reducer); _a < _b.length; _a++) {
             var prop = _b[_a];
-            var next = reduce(state[prop], action, reducer[prop]);
+            var next = reduce(state[prop], action, reducer[prop], root);
             if (state[prop] !== next) {
                 hasChanges = true;
                 changes[prop] = next;
@@ -36,12 +36,12 @@ var reduce = function (state, action, reducer) {
     }
     return reducer;
 };
-export var combineReducers = function () {
+export function combineReducers() {
     var reducers = [];
     for (var _i = 0; _i < arguments.length; _i++) {
         reducers[_i] = arguments[_i];
     }
-    return function (state, action) {
-        return reduce(state, action, reducers);
+    return function (state, action, root) {
+        return reduce(state, action, reducers, root);
     };
-};
+}

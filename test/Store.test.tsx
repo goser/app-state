@@ -150,6 +150,92 @@ describe('Store', () => {
         expect(store.getState()).toStrictEqual({nested: {prop: 'B'}});
     });
 
+    it('should pass through root value for simple reducer', () => {
+        type S = {name: string};
+        type A = {type: 't'};
+        let root: S;
+        const initial = {name: 'Hans'};
+        const store = Store
+            .scope<S, A>()
+            .addReducer((s, a, r) => {
+                root = r;
+                return s;
+            })
+            .create(initial);
+        expect(root!).toBeUndefined();
+        store.dispatch({type: 't'});
+        expect(root!).toStrictEqual(initial);
+    });
+
+    it('should pass through root value for selected reducer', () => {
+        type S = {name: string};
+        type A = {type: 't'};
+        let root: S;
+        const initial = {name: 'Hans'};
+        const store = Store
+            .scope<S, A>()
+            .addReducer(s => s.name, (s, a, r) => {
+                root = r;
+                return s;
+            })
+            .create(initial);
+        expect(root!).toBeUndefined();
+        store.dispatch({type: 't'});
+        expect(root!).toStrictEqual(initial);
+    });
+
+    it('should pass through root value for case', () => {
+        type S = {name: string};
+        type A = {type: 't'};
+        let root: S;
+        const initial = {name: 'Hans'};
+        const store = Store
+            .scope<S, A>()
+            .addCase('t', (s, a, r) => {
+                root = r;
+                return s;
+            })
+            .create(initial);
+        expect(root!).toBeUndefined();
+        store.dispatch({type: 't'});
+        expect(root!).toStrictEqual(initial);
+    });
+
+    it('should pass through root value for simple nested reducer', () => {
+        type S = {name: string};
+        type A = {type: 't'};
+        let root: S;
+        const initial = {name: 'Hans'};
+        const store = Store
+            .scope<S, A>()
+            .nested(s => s.name, config => config.addReducer((s, a, r) => {
+                root = r;
+                return s;
+            }))
+            .create(initial);
+        expect(root!).toBeUndefined();
+        store.dispatch({type: 't'});
+        expect(root!).toStrictEqual(initial);
+    });
+
+    it('should pass through root value for nested case', () => {
+        type S = {sub: {name: string}};
+        type A = {type: 't'};
+        let root: S;
+        const initial = {sub: {name: 'Hans'}};
+        const store = Store
+            .scope<S, A>()
+            .addCase('t', s => ({...s}))
+            .nested(s => s.sub.name, config => config.addCase('t', (s, a, r) => {
+                root = r;
+                return s;
+            }))
+            .create(initial);
+        expect(root!).toBeUndefined();
+        store.dispatch({type: 't'});
+        expect(root!).toStrictEqual(initial);
+    });
+
     it('should support async actions', async () => {
         type S = {prop: string}
         type A = {type: 't'}

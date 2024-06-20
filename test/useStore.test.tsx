@@ -46,7 +46,7 @@ const initialState: AppState = {
 
 const afterPartyState: AppState = {...initialState, user: {...initialState.user, age: 36}};
 
-const appReducer: ReducerNode<AppState, AppAction> = {
+const appReducer: ReducerNode<AppState, AppAction, AppState> = {
     user: (state, action) => {
         switch (action.type) {
             case 'party': return {...state, age: state.age + 1}

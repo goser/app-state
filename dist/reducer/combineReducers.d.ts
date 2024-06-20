@@ -1,3 +1,2 @@
-import { Reducer } from 'react';
-import { ReducerNode } from './Reducer';
-export declare const combineReducers: <S, A>(...reducers: ReducerNode<S, A>[]) => Reducer<S, A>;
+import { NestedReducer, ReducerNode } from './Reducer';
+export declare function combineReducers<S, A, R>(...reducers: ReducerNode<S, A, R>[]): NestedReducer<S, A, R>;

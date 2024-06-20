@@ -49,13 +49,13 @@ var reduceByPath = function (state, path, newValue) {
 };
 var createWrapper = function (selector, reducer) {
     var path;
-    return function (state, action) {
+    return function (state, action, root) {
         var subState;
         if (!path) {
             path = resolvePathForSelector(state, selector);
         }
         subState = selector(state);
-        var newSubState = reducer(subState, action);
+        var newSubState = reducer(subState, action, root);
         if (newSubState !== subState) {
             return reduceByPath(state, __spreadArray([], path, true), newSubState);
         }
@@ -73,12 +73,12 @@ var Config = /** @class */ (function () {
         };
     }
     Config.prototype.addCase = function (type, reducer) {
-        this.reducers.push(function (s, a) {
+        this.reducers.push((function (s, a, r) {
             if (a.type === type) {
-                return reducer(s, a);
+                return reducer(s, a, r);
             }
             return s;
-        });
+        }));
         return this;
     };
     Config.prototype.addReducer = function () {
@@ -102,7 +102,7 @@ var Config = /** @class */ (function () {
     };
     Config.prototype.addAsyncAction = function (type, loader) {
         var _this = this;
-        this.reducers.push(function (state, action) {
+        this.reducers.push((function (state, action) {
             if (action.type === type) {
                 _this.postActions.push(function (dispatch) {
                     dispatch({ type: "".concat(type).concat(asyncActionLoadingSuffix) });
@@ -113,7 +113,7 @@ var Config = /** @class */ (function () {
                 });
             }
             return state;
-        });
+        }));
         return this;
     };
     Config.prototype.create = function (initialState) {
@@ -132,7 +132,7 @@ var Config = /** @class */ (function () {
             var previousState = state;
             try {
                 isDispatching = true;
-                state = reducer(state, action);
+                state = reducer(state, action, state);
             }
             finally {
                 isDispatching = false;
